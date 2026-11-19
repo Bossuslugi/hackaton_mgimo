@@ -8,3 +8,7 @@ build/
 next-env.d.ts
 .DS_Store
 npm-debug.log*
+
+# SQLite база демо-стенда
+prisma/*.db
+prisma/*.db-journal
