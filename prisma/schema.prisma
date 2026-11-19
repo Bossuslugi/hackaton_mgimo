@@ -1,0 +1,144 @@
+// «Орбита» — схема данных прототипа. Описание и правила доступа: specs/03_DATA_AND_SECURITY.md
+// SQLite не поддерживает enum в Prisma, поэтому допустимые значения строковых полей
+// фиксируются в комментариях и проверяются на уровне API (src/lib/domain.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  // Файл БД лежит рядом со схемой: prisma/dev.db. Не секрет — это локальный демо-стенд.
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                String  @id @default(cuid())
+  email             String  @unique
+  passwordHash      String
+  fullName          String
+  role              String  // STUDENT | ADMIN
+  faculty           String?
+  program           String?
+  course            Int?
+  groupName         String?
+  studyForm         String? // Бюджет | Договор
+  studentCardNumber String?
+  curatorName       String?
+  scholarshipStatus String?
+  position          String? // должность сотрудника деканата
+
+  createdAt DateTime @default(now())
+
+  grades        SubjectGrade[]
+  assignments   Assignment[]
+  requests      DocumentRequest[]
+  notifications Notification[]
+
+  @@index([groupName])
+}
+
+model ScheduleItem {
+  id            String  @id @default(cuid())
+  groupName     String
+  dayOfWeek     Int     // 1 (Пн) … 6 (Сб)
+  startTime     String  // HH:MM
+  endTime       String  // HH:MM
+  subject       String
+  type          String  // Лекция | Практика | Лабораторная
+  building      String
+  room          String
+  oldRoom       String?
+  teacher       String
+  isRescheduled Boolean @default(false)
+
+  @@index([groupName, dayOfWeek])
+}
+
+model SubjectGrade {
+  id              String @id @default(cuid())
+  userId          String
+  subject         String
+  teacher         String
+  controlType     String // Экзамен | Зачёт
+  labsScore       Int
+  labsMax         Int
+  midtermScore    Int
+  midtermMax      Int
+  attendanceScore Int
+  attendanceMax   Int
+  examMax         Int
+  currentTotal    Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject])
+  @@index([userId])
+}
+
+model Assignment {
+  id             String    @id @default(cuid())
+  userId         String
+  subject        String
+  title          String
+  description    String
+  deadline       String    // ISO-8601
+  brsWeight      Int
+  status         String    // TODO | SUBMITTED | GRADED | OVERDUE
+  submissionUrl  String?
+  studentComment String?
+  submittedAt    DateTime?
+  score          Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StudyMaterial {
+  id              String   @id @default(cuid())
+  faculty         String
+  subject         String
+  title           String
+  category        String   // Конспект | Шпаргалка к РК | Билеты | Шаблон лабы
+  readTimeMinutes Int
+  contentMarkdown String
+  updatedAt       DateTime @default(now())
+
+  @@index([faculty])
+}
+
+model DocumentRequest {
+  // Числовой id сделан намеренно: его легко подобрать, и это наглядно показывает,
+  // что защита держится на проверке владельца, а не на «непредсказуемости» идентификатора.
+  id             Int      @id @default(autoincrement())
+  userId         String
+  type           String   // STUDY_CERTIFICATE | MILITARY_CERTIFICATE | FINANCIAL_AID | RETAKE | PGAS
+  status         String   // NEW | IN_REVIEW | APPROVED | REJECTED
+  comment        String?
+  adminComment   String?
+  registryNumber String   @unique
+  reviewedBy     String?  // ФИО сотрудника, принявшего решение
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String   // DEADLINE | SCHEDULE | REQUEST | DEAN
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  isCritical Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
