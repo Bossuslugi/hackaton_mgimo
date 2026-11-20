@@ -4,7 +4,7 @@
  * Правила — specs/01_PRODUCT_PRD.md §3.4–3.7.
  */
 
-export const ROLES = ['STUDENT', 'ADMIN'] as const;
+export const ROLES = ['STUDENT', 'ADMIN', 'TEACHER'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const LESSON_TYPES = ['Лекция', 'Практика', 'Лабораторная'] as const;
@@ -21,6 +21,9 @@ export const REQUEST_TYPES = [
   'FINANCIAL_AID',
   'RETAKE',
   'PGAS',
+  // V2
+  'ACADEMIC_TRANSCRIPT',
+  'DORMITORY_PASS',
 ] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
 
@@ -30,6 +33,8 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   FINANCIAL_AID: 'Заявление на материальную помощь',
   RETAKE: 'Направление на пересдачу',
   PGAS: 'Заявка на повышенную академическую стипендию (ПГАС)',
+  ACADEMIC_TRANSCRIPT: 'Академическая справка (выписка оценок)',
+  DORMITORY_PASS: 'Пропуск в общежитие',
 };
 
 /** Нормативный срок рассмотрения, рабочих дней — используется ассистентом и в ответах API. */
@@ -39,6 +44,8 @@ export const REQUEST_SLA_DAYS: Record<RequestType, number> = {
   FINANCIAL_AID: 10,
   RETAKE: 3,
   PGAS: 10,
+  ACADEMIC_TRANSCRIPT: 5,
+  DORMITORY_PASS: 2,
 };
 
 export const REQUEST_STATUSES = ['NEW', 'IN_REVIEW', 'APPROVED', 'REJECTED'] as const;
@@ -52,7 +59,7 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   REJECTED: 'Отклонена',
 };
 
-export const NOTIFICATION_CATEGORIES = ['DEADLINE', 'SCHEDULE', 'REQUEST', 'DEAN'] as const;
+export const NOTIFICATION_CATEGORIES = ['DEADLINE', 'SCHEDULE', 'REQUEST', 'DEAN', 'GRADE'] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 // ───────────────────────── БРС
@@ -150,3 +157,116 @@ function toMinutes(hhmm: string): number {
 }
 
 export const WEEKDAY_NAMES = ['', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
+
+// ───────────────────────── V2: люди
+
+/** «Волков Игорь Сергеевич» → «Волков И. С.» (формат поля ScheduleItem.teacher). */
+export function shortName(full: string): string {
+  const [last, ...rest] = full.trim().split(/\s+/);
+  return [last, ...rest.map((p) => `${p[0]}.`)].join(' ');
+}
+
+/** Подпись автора задания: «Доц. Волков И. С.». */
+export function authorLabel(fullName: string, position?: string | null): string {
+  const p = (position ?? '').toLowerCase();
+  const title = p.startsWith('профессор') ? 'Проф. ' : p.startsWith('доцент') ? 'Доц. ' : p.startsWith('ст') ? 'Ст. преп. ' : '';
+  return `${title}${shortName(fullName)}`;
+}
+
+// ───────────────────────── V2: поиск
+
+const LATIN_TO_CYR: Record<string, string> = { a: 'а', b: 'в', c: 'с', e: 'е', h: 'н', k: 'к', m: 'м', o: 'о', p: 'р', t: 'т', x: 'х', y: 'у' };
+
+/** Нормализация для поиска: регистр, ё→е, латинские двойники → кириллица, без пробелов и точек. */
+export function searchKey(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[a-z]/g, (ch) => LATIN_TO_CYR[ch] ?? ch)
+    .replace(/[\s.«»"'-]+/g, '');
+}
+
+// ───────────────────────── V2: бронирование
+
+export interface BookableRoom {
+  roomName: string;
+  building: string;
+  capacity: number;
+  equipment: string[];
+  description: string;
+}
+
+export const ROOMS_CATALOG: BookableRoom[] = [
+  {
+    roomName: 'Коворкинг «Точка кипения»',
+    building: 'Корпус А, 1 этаж',
+    capacity: 40,
+    equipment: ['Wi-Fi', 'Проектор', 'Маркерные стены', 'Кофе-поинт'],
+    description: 'Открытое пространство для командной работы и митапов.',
+  },
+  {
+    roomName: 'Проектная аудитория 304',
+    building: 'Корпус Б, 3 этаж',
+    capacity: 24,
+    equipment: ['Интерактивная панель', 'ВКС', 'Модульная мебель'],
+    description: 'Аудитория для проектных сессий и защит.',
+  },
+  {
+    roomName: 'Переговорная Б-12',
+    building: 'Корпус Б, 1 этаж',
+    capacity: 8,
+    equipment: ['ТВ-панель 65"', 'ВКС', 'Флипчарт'],
+    description: 'Небольшая комната для встреч команды и созвонов.',
+  },
+  {
+    roomName: 'Читальный зал №2',
+    building: 'Библиотека, 2 этаж',
+    capacity: 30,
+    equipment: ['Тихая зона', 'Розетки у каждого места'],
+    description: 'Тихая самостоятельная работа и подготовка к сессии.',
+  },
+  {
+    roomName: 'Лекторий 201',
+    building: 'Корпус А, 2 этаж',
+    capacity: 120,
+    equipment: ['Проектор', 'Звукоусиление', 'Запись лекций'],
+    description: 'Большой зал для открытых лекций и мероприятий.',
+  },
+];
+
+export const TIME_SLOTS = [
+  '08:20 – 09:50',
+  '10:00 – 11:30',
+  '11:40 – 13:10',
+  '13:30 – 15:00',
+  '15:20 – 16:50',
+  '17:00 – 18:30',
+] as const;
+
+export const BOOKING_HORIZON_DAYS = 14;
+export const MAX_ACTIVE_BOOKINGS = 3;
+
+export const slotStart = (slot: string) => slot.slice(0, 5);
+export const slotKey = (roomName: string, date: string, timeSlot: string) => `${roomName}|${date}|${timeSlot}`;
+
+/** Московская дата YYYY-MM-DD со сдвигом в днях. */
+export function moscowDate(offsetDays = 0, d = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    new Date(d.getTime() + offsetDays * 86_400_000),
+  );
+}
+
+/** Слот ещё не начался (дата в будущем или сегодня позже текущего времени МСК). */
+export function isSlotUpcoming(date: string, timeSlot: string, now = new Date()): boolean {
+  const today = moscowDate(0, now);
+  if (date !== today) return date > today;
+  return slotStart(timeSlot) > moscowNow(now).hhmm;
+}
+
+/** Формат места занятия: «Корпус Б, ауд. 2337» или «Корпус А, Лаб. 105». */
+export function formatLocation(building: string, room: string): string {
+  return /^\d/.test(room) ? `${building}, ауд. ${room}` : `${building}, ${room}`;
+}
+
+export const LESSON_HOURS = 1.5;
+export const WEEKDAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];

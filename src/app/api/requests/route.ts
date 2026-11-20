@@ -24,7 +24,7 @@ export const GET = route(async () => {
 
 export const POST = route(async (req) => {
   const session = await requireRole('STUDENT');
-  const { type, comment } = await parseBody(req, createRequestSchema);
+  const { type, comment, payloadJson } = await parseBody(req, createRequestSchema);
 
   const duplicate = await prisma.documentRequest.findFirst({
     where: { userId: session.userId, type, status: { in: ACTIVE_REQUEST_STATUSES } },
@@ -43,6 +43,7 @@ export const POST = route(async (req) => {
         type,
         status: 'NEW',
         comment: comment ?? null,
+        payloadJson: payloadJson ?? null,
         registryNumber: `TMP-${randomUUID()}`,
       },
     });

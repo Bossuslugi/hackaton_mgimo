@@ -272,3 +272,257 @@ ADMIN:
 - перенос аудитории меняет расписание группы и уведомляет только её студентов
 - запрос с чужим `Origin` → `403`
 - ИИ без ключа отвечает по реальным данным (42 балла, «не хватает 8 до допуска») и не читает материалы чужого факультета
+
+
+---
+
+# V2 · API-контракт
+
+> Статус: реализовано · Все эндпоинты и поля V1 сохранены; V2 добавляет поля в ответы (без удаления и переименования) и новые эндпоинты. Правила доступа — `03_DATA_AND_SECURITY.md` §V2.
+
+## V2.1. Изменения общих объектов
+
+```ts
+User += {
+  role: 'STUDENT' | 'ADMIN' | 'TEACHER';
+  department: string | null;            // кафедра преподавателя
+  campusHoursWeek: number;              // 22.5 по умолчанию
+  campusHoursSemester: number;          // 318 по умолчанию
+}
+
+Contact {                               // публичная карточка для мессенджера, без email
+  id; fullName; role; groupName: string | null; department: string | null; position: string | null;
+}
+
+Assignment += {
+  groupName: string; authorName: string;
+  taskPrompt: string;                   // Markdown-условие, '' у старых заданий
+  starterTemplate: string | null;
+  solutionText: string | null;
+  gradeAwarded: number | null; teacherFeedback: string | null;
+  material: { id; title; category } | null;       // привязанная методичка
+  student?: { id; fullName; groupName };          // только в /api/teacher/*
+}
+
+DocumentRequest += { payloadJson: string | null; payload: object | null }
+
+Lesson.location = 'Корпус Б, Лаб. 105' | 'Корпус Б, ауд. 2337'   // «ауд.» добавляется только к номеру
+
+Notification.category += 'GRADE'
+
+Booking {
+  id?: string;                          // только у своей брони
+  roomName; building; date: 'YYYY-MM-DD'; timeSlot: '15:20 – 16:50';
+  participantsCount: number; status: 'CONFIRMED' | 'CANCELLED'; isMine: boolean;
+  purpose?: string; createdAt?: ISO;    // только у своей брони
+}
+
+Message { id; senderId; receiverId; content; isRead: boolean; mine: boolean; createdAt: ISO }
+```
+
+Перечисления: `Request.type` += `ACADEMIC_TRANSCRIPT`, `DORMITORY_PASS` (`RETAKE` остаётся).
+
+## V2.2. Роль TEACHER в эндпоинтах V1
+
+`GET /api/dashboard` для TEACHER:
+
+```json
+{
+  "role": "TEACHER",
+  "user": User,
+  "nextClass": Lesson | null,
+  "nextLesson": Lesson | null,
+  "stats": { "toReview": 2, "graded": 1, "assignmentsIssued": 6, "groups": ["И2101", "М3203"], "unreadMessages": 2 },
+  "recentSubmissions": Assignment[],
+  "unreadCount": 1,
+  "announcements": Notification[]
+}
+```
+
+Остальное — по матрице `03` §V2.2: `/api/grades` → `403`; `/api/study` → все материалы и `assignments: []`; `/api/requests/[id]` → только свои (чужая/несуществующая — `403`); создание заявок, `PATCH` заявок и объявления → `403`.
+
+## V2.3. Расписание с поиском
+
+### `GET /api/schedule?mode=my|group|room&query=…`
+
+| Параметр | Значение |
+|----------|----------|
+| `mode` | `my` (по умолчанию), `group`, `room` |
+| `query` | 1…50 символов; обязателен для `group` и `room` |
+
+- `my` — как в V1: студент — своя группа; TEACHER — его занятия; ADMIN — все.
+- `group` — группы, у которых ключ поиска совпадает с запросом (при отсутствии точного совпадения — частичное). Ключ: нижний регистр, `ё → е`, латинские двойники (`M`, `E`, `A`…) → кириллица, без пробелов и точек.
+- `room` — занятия, у которых тем же ключом частично совпадает `room` или `building`.
+
+`200`:
+
+```json
+{
+  "items": Lesson[], "lessons": Lesson[],
+  "mode": "room", "query": "Лаб. 105",
+  "availableGroups": ["И2101", "М3203", "Э4102"],
+  "availableRooms": ["Ауд. 204", "Ауд. 301", "Ауд. 402", "Коворкинг А", "Лаб. 105", "…"]
+}
+```
+
+`400` — неизвестный `mode` или нет `query`.
+
+## V2.4. Бронирование помещений
+
+### `GET /api/bookings[?date=YYYY-MM-DD]`
+
+```json
+{
+  "date": "2026-11-20", "today": "2026-11-20",
+  "timeSlots": ["08:20 – 09:50", "10:00 – 11:30", "11:40 – 13:10", "13:30 – 15:00", "15:20 – 16:50", "17:00 – 18:30"],
+  "myBookings": Booking[],
+  "allBookingsToday": Booking[],
+  "roomsCatalog": [{
+    "roomName": "Переговорная Б-12", "building": "Корпус Б, 1 этаж", "capacity": 8,
+    "equipment": ["ТВ-панель 65\"", "ВКС", "Флипчарт"], "description": "…",
+    "slots": [{ "timeSlot": "15:20 – 16:50", "available": false, "taken": true }]
+  }]
+}
+```
+
+- `myBookings` — все свои брони (в т.ч. отменённые), новые сверху.
+- `allBookingsToday` — все `CONFIRMED` на сегодня (МСК); чужие без `id`, `purpose`, владельца.
+- `slots` — сетка на `date` (по умолчанию сегодня): `taken` — занято, `available` — свободно и ещё не началось.
+
+### `POST /api/bookings`
+
+Тело: `{ roomName, building?, date: 'YYYY-MM-DD', timeSlot, purpose, participantsCount }`. `building` игнорируется (берётся из каталога); `timeSlot` принимает и `13:30-15:00`.
+
+| Ответ | Когда |
+|-------|-------|
+| `201 { booking }` | создано от `session.userId` |
+| `400` | помещения нет в каталоге, слот не из списка, дата вне «сегодня…+14 дн.», участников больше вместимости, `purpose` < 3 символов |
+| `409 { error: "Помещение «…» уже занято 22.11.2026 в слот 13:30 – 15:00. Выберите другое время или помещение." }` | слот занят (в т.ч. при гонке параллельных запросов) |
+| `409` | слот уже начался; у пользователя уже 3 активные будущие брони |
+
+### `DELETE /api/bookings/[id]`
+
+- `200 { ok: true, booking }` — `status: 'CANCELLED'`, слот освобождён.
+- `403 { error: "Доступ запрещён: бронь принадлежит другому пользователю (IDOR protection)" }` — чужая или несуществующая (для всех ролей, включая ADMIN).
+- `409` — уже отменена или слот начался.
+
+## V2.5. Мессенджер
+
+### `GET /api/messages`
+
+```json
+{
+  "contacts": [{
+    "id": "…", "fullName": "Волков Игорь Сергеевич", "role": "TEACHER",
+    "groupName": null, "department": "Кафедра программной инженерии", "position": "Доцент …",
+    "lastMessage": Message | null, "unreadCount": 1
+  }],
+  "unreadTotal": 2
+}
+```
+
+Контакты: для STUDENT — одногруппники, все TEACHER и ADMIN, плюс те, кто уже написал первым; для TEACHER/ADMIN — все пользователи. Сортировка: по `lastMessage.createdAt` (новые сверху), затем преподаватели → студенты → деканат, затем по ФИО.
+
+### `GET /api/messages/[peerId]`
+
+`200 { peer: Contact, messages: Message[] }` — до 200 последних сообщений **только** между `session.userId` и `peerId`, по возрастанию времени. Входящие от `peerId` помечаются прочитанными.
+
+`400` — `peerId` = свой id · `403 { error: "Доступ запрещён: этот пользователь не входит в ваши контакты" }` — не контакт или не существует.
+
+### `POST /api/messages/[peerId]`
+
+Тело: `{ content }` (1…2000 после `trim`). `201 { message }`, `senderId` = `session.userId`. Ошибки: `400` (пустой/длинный текст), `403` (как у GET), `429` (30 сообщений/мин).
+
+## V2.6. Сдача решения (расширение V1)
+
+### `POST /api/study/assignments/[id]/submit`
+
+Тело: `{ solutionText?: string (≤ 20 000), submissionUrl?: 'https://…', studentComment?: string }` — нужно хотя бы одно из `solutionText` / `submissionUrl` (алиасы V1 `link`, `comment` работают).
+
+- `200 { assignment, late }` — статус `SUBMITTED`; при повторной сдаче непереданное поле сохраняет прежнее значение. Автору задания (`authorId`) уходит уведомление «Новое решение на проверке».
+- `400` — нет ни решения, ни ссылки; ссылка не `https://` · `403` — чужое/несуществующее · `409` — уже `GRADED`.
+
+## V2.7. Кабинет преподавателя
+
+Все `/api/teacher/*` — только `TEACHER` и `ADMIN`, иначе `403`.
+
+### `GET /api/teacher/assignments`
+
+```json
+{
+  "assignments": Assignment[],          // со student, solutionText, submissionUrl
+  "summary": { "total": 6, "TODO": 2, "SUBMITTED": 2, "GRADED": 1, "OVERDUE": 1 },
+  "toReview": 2,
+  "groups": ["И2101", "М3203"],          // группы преподавателя по расписанию
+  "subjects": ["Алгоритмы и структуры данных", "Основы программирования"]
+}
+```
+
+TEACHER — только `authorId = session.userId`; ADMIN — все задания с автором.
+
+### `POST /api/teacher/assignments`
+
+Тело:
+
+```json
+{
+  "groupName": "М3203", "subject": "Алгоритмы и структуры данных",
+  "title": "Онлайн-задача: бинарный поиск", "description": "…",
+  "taskPrompt": "## Условие …", "starterTemplate": "def lower_bound(a, x): …",
+  "deadline": "2026-11-25T20:59:00.000Z", "brsWeight": 5, "materialId": "…"
+}
+```
+
+- `201 { ok: true, groupName, recipients, assignments: Assignment[] }` — по строке на каждого студента группы (`status: TODO`, `authorId` = `session.userId`, `authorName` = «Доц. Волков И. С.»), каждому — уведомление `DEADLINE`.
+- `400` — валидация (`deadline` в прошлом или дальше 180 дней, `brsWeight` вне 1…40, пустое условие, методичка не найдена) · `403` — TEACHER не ведёт эту группу · `404` — в группе нет студентов.
+
+### `PATCH /api/teacher/assignments/[id]/grade`
+
+Тело: `{ gradeAwarded: 0…brsWeight, teacherFeedback?: string }`
+
+- `200 { assignment, brs: { subject, labsScore, currentTotal } | null }` — статус `GRADED`, `score = gradeAwarded`; балл (разница при переоценке) добавлен к `labsScore` дисциплины студента (не выше `labsMax`), `currentTotal` пересчитан; студенту — уведомление `GRADE`.
+- `400` — балл больше веса · `403` — TEACHER и задание чужое или не существует (IDOR) · `404` — ADMIN, задания нет · `409` — решение ещё не сдано.
+
+## V2.8. Заявки со структурированными полями
+
+### `POST /api/requests` (расширение V1)
+
+Тело: `{ type, comment?, payload?: object }` или `{ …, payloadJson: object | string }`.
+
+```json
+{ "type": "PGAS", "payload": { "achievements": [{ "type": "Научная", "title": "Статья в сборнике конференции", "date": "2026-05" }] } }
+```
+
+Схема `payload` зависит от `type` (`01` §V2.7). Неизвестные ключи отбрасываются, нарушения → `400` с путём `payload.<поле>`, сериализованный результат ≤ 4000 символов. В ответе — `payloadJson` (строка) и `payload` (объект). Без `payload` заявка создаётся как в V1.
+
+## V2.9. Статистика
+
+### `GET /api/stats`
+
+```json
+{
+  "role": "STUDENT",
+  "campusHoursWeek": 27.5, "campusHoursSemester": 346, "classHoursWeek": 18,
+  "attendancePercent": 91, "avgBrs": 90.8, "rankInGroup": 1, "groupSize": 2,
+  "weeklyActivity": [{ "day": "Пн", "dayOfWeek": 1, "campusHours": 7, "studyHours": 4.5 }],
+  "timeBreakdown": [{ "category": "Лекции", "hours": 6, "percent": 22 }]
+}
+```
+
+- `studyHours` = число пар дня × 1,5; `campusHours` — занятия плюс остаток `campusHoursWeek`, распределённый пропорционально нагрузке дня; сумма за неделю = `campusHoursWeek`.
+- `timeBreakdown`: лекции, практики, лабораторные, бронирования помещений (подтверждённые брони ±3 дня × 1,5 ч), самостоятельная работа в кампусе, перерывы и питание; сумма `percent` = 100, нулевые категории не выводятся.
+- `rankInGroup` — 1 + число одногруппников с большим средним баллом.
+- TEACHER: расчёт по его занятиям, `attendancePercent`, `avgBrs`, `rankInGroup`, `groupSize` = `null`. ADMIN: без расписания.
+
+## V2.10. Проверка контракта V2
+
+Прогнано на собранном приложении (`next build && next start`), после сида:
+
+- регресс V1 — все 58 сценариев зелёные (с поправкой на новые демо-данные: 4 задания у Алексея, 3 группы);
+- 97 сценариев V2, в том числе:
+  - **IDOR**: чужая бронь при `DELETE` → `403` (несуществующая — тот же `403`, деканат тоже `403`); переписка чужого контакта → `403`; оценка чужого задания преподавателем → `403`; сдача чужого задания → `403`; заявка по id для TEACHER → `403`;
+  - подмена `senderId`, `userId`, `authorId` в теле игнорируется;
+  - двойная бронь: последовательная → `409`, две параллельные → ровно один `201` и один `409`;
+  - поиск расписания: `и2101`, латинское `M3203`, `лаб. 105`, `корпус г`;
+  - оценка добавляет балл в БРС, переоценка учитывает только разницу;
+  - сумма часов по дням = `campusHoursWeek`, сумма процентов = 100, рейтинг в группе.

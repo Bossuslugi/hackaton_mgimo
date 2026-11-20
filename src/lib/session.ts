@@ -27,13 +27,19 @@ export async function requireSession(): Promise<Session> {
   return s;
 }
 
-export async function requireRole(role: 'STUDENT' | 'ADMIN'): Promise<Session> {
+type AppRole = 'STUDENT' | 'ADMIN' | 'TEACHER';
+
+const ROLE_DENIED: Record<string, string> = {
+  ADMIN: 'Доступ запрещён: действие доступно только сотруднику деканата',
+  STUDENT: 'Доступ запрещён: раздел доступен только студентам',
+  'TEACHER,ADMIN': 'Доступ запрещён: раздел доступен только преподавателям и деканату',
+};
+
+/** Требует одну из ролей; иначе 403. */
+export async function requireRole(...roles: AppRole[]): Promise<Session> {
   const s = await requireSession();
-  if (s.role !== role) {
-    throw new HttpError(
-      403,
-      role === 'ADMIN' ? 'Доступ запрещён: действие доступно только сотруднику деканата' : 'Доступ запрещён: раздел доступен только студентам',
-    );
+  if (!roles.includes(s.role)) {
+    throw new HttpError(403, ROLE_DENIED[roles.join(',')] ?? 'Доступ запрещён');
   }
   return s;
 }

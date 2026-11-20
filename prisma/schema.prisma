@@ -17,7 +17,7 @@ model User {
   email             String  @unique
   passwordHash      String
   fullName          String
-  role              String  // STUDENT | ADMIN
+  role              String  // STUDENT | ADMIN | TEACHER (V2)
   faculty           String?
   program           String?
   course            Int?
@@ -26,7 +26,11 @@ model User {
   studentCardNumber String?
   curatorName       String?
   scholarshipStatus String?
-  position          String? // должность сотрудника деканата
+  position          String? // должность сотрудника деканата / преподавателя
+  // V2
+  department          String? // кафедра (для преподавателей)
+  campusHoursWeek     Float   @default(22.5)
+  campusHoursSemester Int     @default(318)
 
   createdAt DateTime @default(now())
 
@@ -34,6 +38,9 @@ model User {
   assignments   Assignment[]
   requests      DocumentRequest[]
   notifications Notification[]
+  bookings      RoomBooking[]
+  sentMessages     DirectMessage[] @relation("sentMessages")
+  receivedMessages DirectMessage[] @relation("receivedMessages")
 
   @@index([groupName])
 }
@@ -90,9 +97,22 @@ model Assignment {
   submittedAt    DateTime?
   score          Int?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // V2: онлайн-ДЗ и решение задач на сайте
+  authorId        String?  // преподаватель, выдавший задание
+  authorName      String   @default("Доц. Волков И.С.")
+  groupName       String   @default("М3203")
+  taskPrompt      String   @default("") // условие в Markdown
+  starterTemplate String?  // шаблон кода/ответа для редактора
+  solutionText    String?  // решение, написанное студентом на сайте
+  gradeAwarded    Int?     // балл преподавателя (0…brsWeight)
+  teacherFeedback String?
+  materialId      String?  // привязанная методичка
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material StudyMaterial? @relation(fields: [materialId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([authorId])
 }
 
 model StudyMaterial {
@@ -104,6 +124,8 @@ model StudyMaterial {
   readTimeMinutes Int
   contentMarkdown String
   updatedAt       DateTime @default(now())
+
+  assignments Assignment[]
 
   @@index([faculty])
 }
@@ -119,6 +141,7 @@ model DocumentRequest {
   adminComment   String?
   registryNumber String   @unique
   reviewedBy     String?  // ФИО сотрудника, принявшего решение
+  payloadJson    String?  // V2: структурированные поля онлайн-формы (JSON)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -131,7 +154,7 @@ model DocumentRequest {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  category  String   // DEADLINE | SCHEDULE | REQUEST | DEAN
+  category  String   // DEADLINE | SCHEDULE | REQUEST | DEAN | GRADE (V2)
   title     String
   message   String
   isRead    Boolean  @default(false)
@@ -141,4 +164,42 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+}
+
+// ───────────────────────── V2
+
+model RoomBooking {
+  id                String   @id @default(cuid())
+  userId            String
+  roomName          String
+  building          String
+  date              String   // YYYY-MM-DD (московская дата)
+  timeSlot          String   // "15:20 – 16:50"
+  purpose           String
+  participantsCount Int
+  status            String   @default("CONFIRMED") // CONFIRMED | CANCELLED
+  // "<roomName>|<date>|<timeSlot>" у активной брони, NULL после отмены.
+  // Уникальный индекс делает двойное бронирование невозможным даже при гонке запросов.
+  activeSlotKey     String?  @unique
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date, roomName])
+}
+
+model DirectMessage {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("sentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("receivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, isRead])
 }

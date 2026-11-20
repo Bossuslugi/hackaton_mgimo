@@ -14,7 +14,7 @@ const ALG = 'HS256';
 
 export interface SessionPayload {
   userId: string;
-  role: 'STUDENT' | 'ADMIN';
+  role: 'STUDENT' | 'ADMIN' | 'TEACHER';
 }
 
 type G = typeof globalThis & { __orbitaDevSecret?: Uint8Array };
@@ -60,7 +60,7 @@ export async function verifySession(token: string | undefined | null): Promise<S
       audience: AUDIENCE,
     });
     const role = payload.role;
-    if (typeof payload.sub !== 'string' || (role !== 'STUDENT' && role !== 'ADMIN')) return null;
+    if (typeof payload.sub !== 'string' || (role !== 'STUDENT' && role !== 'ADMIN' && role !== 'TEACHER')) return null;
     return { userId: payload.sub, role };
   } catch {
     return null;

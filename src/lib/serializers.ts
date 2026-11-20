@@ -5,12 +5,23 @@
  * Помимо полей контракта (specs/04_API_CONTRACT.md) отдаются совместимые алиасы,
  * которые ожидает фронтенд (src/lib/normalize.ts): group, points, rk, total и т.п.
  */
-import type { Assignment, DocumentRequest, Notification, ScheduleItem, StudyMaterial, SubjectGrade, User } from '@prisma/client';
+import type {
+  Assignment,
+  DirectMessage,
+  DocumentRequest,
+  Notification,
+  RoomBooking,
+  ScheduleItem,
+  StudyMaterial,
+  SubjectGrade,
+  User,
+} from '@prisma/client';
 import {
   REQUEST_SLA_DAYS,
   REQUEST_STATUS_LABELS,
   REQUEST_TYPE_LABELS,
   effectiveAssignmentStatus,
+  formatLocation,
   gradeLabel,
   hasDebt,
   pointsToAdmission,
@@ -36,6 +47,22 @@ export function serializeUser(u: User) {
     curatorName: u.curatorName,
     scholarshipStatus: u.scholarshipStatus,
     position: u.position,
+    // V2
+    department: u.department,
+    campusHoursWeek: u.campusHoursWeek,
+    campusHoursSemester: u.campusHoursSemester,
+  };
+}
+
+/** Публичная карточка пользователя для мессенджера и списков — без email и учебных данных. */
+export function serializeContact(u: Pick<User, 'id' | 'fullName' | 'role' | 'groupName' | 'department' | 'position'>) {
+  return {
+    id: u.id,
+    fullName: u.fullName,
+    role: u.role,
+    groupName: u.groupName,
+    department: u.department,
+    position: u.position,
   };
 }
 
@@ -58,7 +85,7 @@ export function serializeLesson(s: ScheduleItem) {
     building: s.building,
     room: s.room,
     oldRoom: s.oldRoom,
-    location: `${s.building}, ауд. ${s.room}`,
+    location: formatLocation(s.building, s.room),
     teacher: s.teacher,
     isRescheduled: s.isRescheduled,
   };
@@ -93,7 +120,12 @@ export function serializeGrade(g: SubjectGrade) {
   };
 }
 
-export function serializeAssignment(a: Assignment, now = Date.now()) {
+type AssignmentRow = Assignment & {
+  material?: Pick<StudyMaterial, 'id' | 'title' | 'category'> | null;
+  user?: Pick<User, 'id' | 'fullName' | 'groupName'> | null;
+};
+
+export function serializeAssignment(a: AssignmentRow, now = Date.now()) {
   const status = effectiveAssignmentStatus(a.status, a.deadline, now);
   return {
     id: a.id,
@@ -108,11 +140,25 @@ export function serializeAssignment(a: Assignment, now = Date.now()) {
     submittedAt: a.submittedAt?.toISOString() ?? null,
     score: a.score,
     hoursLeft: Math.round((new Date(a.deadline).getTime() - now) / 36e5),
+    // V2: онлайн-ДЗ
+    groupName: a.groupName,
+    authorName: a.authorName,
+    taskPrompt: a.taskPrompt,
+    starterTemplate: a.starterTemplate,
+    solutionText: a.solutionText,
+    gradeAwarded: a.gradeAwarded,
+    teacherFeedback: a.teacherFeedback,
+    material: a.material
+      ? { id: a.material.id, title: a.material.title, category: MATERIAL_CATEGORY_CODE[a.material.category] ?? 'NOTES' }
+      : null,
+    ...(a.user ? { student: { id: a.user.id, fullName: a.user.fullName, groupName: a.user.groupName } } : {}),
     // алиасы для фронтенда
     points: a.brsWeight,
     submissionLink: a.submissionUrl,
   };
 }
+
+export const assignmentInclude = { material: { select: { id: true, title: true, category: true } } } as const;
 
 const MATERIAL_CATEGORY_CODE: Record<string, string> = {
   Конспект: 'NOTES',
@@ -156,6 +202,8 @@ export function serializeRequest(r: RequestWithUser) {
     signedBy: approved ? r.reviewedBy : null,
     signedAt: approved ? r.updatedAt.toISOString() : null,
     slaDays: REQUEST_SLA_DAYS[r.type as RequestType] ?? null,
+    payloadJson: r.payloadJson,
+    payload: parsePayload(r.payloadJson),
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     ...(owner ? { user: owner, student: owner } : {}),
@@ -181,6 +229,46 @@ export function serializeNotification(n: Notification) {
     // алиасы для ленты объявлений фронтенда
     type: n.isCritical ? 'URGENT' : (ANNOUNCEMENT_TYPE[n.category] ?? 'INFO'),
     body: n.message,
+  };
+}
+
+function parsePayload(json: string | null): Record<string, unknown> | null {
+  if (!json) return null;
+  try {
+    const v = JSON.parse(json);
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+// ───────────────────────── V2
+
+/** Своя бронь — полностью; чужая — обезличенно (без userId и цели). */
+export function serializeBooking(b: RoomBooking, viewerId: string) {
+  const mine = b.userId === viewerId;
+  return {
+    id: mine ? b.id : undefined,
+    roomName: b.roomName,
+    building: b.building,
+    date: b.date,
+    timeSlot: b.timeSlot,
+    participantsCount: b.participantsCount,
+    status: b.status,
+    isMine: mine,
+    ...(mine ? { purpose: b.purpose, createdAt: b.createdAt.toISOString() } : {}),
+  };
+}
+
+export function serializeMessage(m: DirectMessage, viewerId: string) {
+  return {
+    id: m.id,
+    senderId: m.senderId,
+    receiverId: m.receiverId,
+    content: m.content,
+    isRead: m.isRead,
+    mine: m.senderId === viewerId,
+    createdAt: m.createdAt.toISOString(),
   };
 }
 

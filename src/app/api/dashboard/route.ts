@@ -12,6 +12,7 @@ import {
   serializeRequest,
   serializeUser,
 } from '@/lib/serializers';
+import { scheduleTeacherName } from '@/lib/people';
 
 export const GET = route(async () => {
   const session = await requireSession();
@@ -22,6 +23,37 @@ export const GET = route(async () => {
     prisma.notification.count({ where: { userId: user.id, isRead: false } }),
   ]);
   const announcements = notifications.map(serializeNotification);
+
+  if (session.role === 'TEACHER') {
+    const [schedule, authored, unreadMessages] = await Promise.all([
+      prisma.scheduleItem.findMany({ where: { teacher: scheduleTeacherName(user) } }),
+      prisma.assignment.findMany({
+        where: { authorId: user.id },
+        include: { user: { select: { id: true, fullName: true, groupName: true } } },
+        orderBy: { submittedAt: 'desc' },
+      }),
+      prisma.directMessage.count({ where: { receiverId: user.id, isRead: false } }),
+    ]);
+    const next = findNextClass(schedule);
+    const nextClass = next ? serializeLesson(next) : null;
+    const submitted = authored.filter((a) => a.status === 'SUBMITTED');
+    return json({
+      role: 'TEACHER',
+      user: serializeUser(user),
+      nextClass,
+      nextLesson: nextClass,
+      stats: {
+        toReview: submitted.length,
+        graded: authored.filter((a) => a.status === 'GRADED').length,
+        assignmentsIssued: authored.length,
+        groups: [...new Set(schedule.map((s) => s.groupName))].sort(),
+        unreadMessages,
+      },
+      recentSubmissions: submitted.slice(0, 5).map((a) => serializeAssignment(a)),
+      unreadCount,
+      announcements,
+    });
+  }
 
   if (session.role === 'ADMIN') {
     const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);

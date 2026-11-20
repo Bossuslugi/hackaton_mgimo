@@ -141,3 +141,112 @@
 - Rate limiting и dev-секрет живут в памяти процесса и сбрасываются при перезапуске.
 - Нет отзыва токенов до истечения срока (кроме удаления пользователя/смены роли).
 - Нет загрузки файлов — сдача ДЗ только ссылкой.
+
+
+---
+
+# V2 · Данные и безопасность
+
+> Статус: реализовано · Схема V1 не меняется деструктивно: только новые поля (nullable или со значением по умолчанию) и новые модели. Пересоздать стенд: `npm run db:setup`.
+
+## V2.1. Изменения моделей
+
+### User
+
+| Поле | Тип | Примечание |
+|------|-----|------------|
+| `role` | `STUDENT` \| `ADMIN` \| **`TEACHER`** | роль преподавателя |
+| `department` | string? | кафедра преподавателя |
+| `campusHoursWeek` | float, default 22.5 | часы в кампусе за неделю |
+| `campusHoursSemester` | int, default 318 | часы в кампусе за семестр |
+
+### Assignment
+
+| Поле | Тип | Примечание |
+|------|-----|------------|
+| `authorId` | string? | id преподавателя-автора; **основа проверки прав на оценку** |
+| `authorName` | string, default «Доц. Волков И.С.» | подпись автора для UI |
+| `groupName` | string, default «М3203» | группа, которой выдано задание |
+| `taskPrompt` | string, default «» | условие в Markdown |
+| `starterTemplate` | string? | шаблон кода/ответа |
+| `solutionText` | string? | решение студента (≤ 20 000 символов) |
+| `gradeAwarded` | int? | балл преподавателя, `0…brsWeight` |
+| `teacherFeedback` | string? | комментарий преподавателя (≤ 2000) |
+| `materialId` | string? → StudyMaterial | привязанная методичка, `onDelete: SetNull` |
+
+Онлайн-задание хранится **отдельной строкой на каждого студента** (как в V1): владелец строки — `userId`, автор — `authorId`. Так IDOR-правила V1 для студента не меняются.
+
+### DocumentRequest
+
+`payloadJson` (string?) — JSON структурированных полей формы, ≤ 4000 символов. Схема полей зависит от типа (`01_PRODUCT_PRD.md` §V2.7) и проверяется zod; в БД попадает только нормализованный результат. В API отдаётся и строкой `payloadJson`, и разобранным объектом `payload`. Новые типы: `ACADEMIC_TRANSCRIPT`, `DORMITORY_PASS`.
+
+### Notification
+
+Новая категория `GRADE` — оценка преподавателя.
+
+### RoomBooking (новая)
+
+`id`, `userId` → User, `roomName`, `building`, `date` (`YYYY-MM-DD`, московская дата), `timeSlot` (`"15:20 – 16:50"`), `purpose`, `participantsCount`, `status` (`CONFIRMED` \| `CANCELLED`), `createdAt`, служебное `activeSlotKey`.
+
+`activeSlotKey = "<roomName>|<date>|<timeSlot>"` у активной брони и `NULL` у отменённой, поле **уникально**. Проверка «слот свободен» делается в коде (для понятного `409`), а уникальный индекс гарантирует отсутствие двойной брони даже при одновременных запросах: второй `INSERT` падает с нарушением уникальности и тоже превращается в `409`.
+
+`roomName` и `building` должны совпадать с каталогом помещений (`src/lib/domain.ts → ROOMS_CATALOG`); `building` из тела запроса игнорируется — берётся из каталога.
+
+### DirectMessage (новая)
+
+`id`, `senderId` → User, `receiverId` → User, `content` (≤ 2000), `isRead`, `createdAt`. Индексы по `(senderId, receiverId, createdAt)` и `(receiverId, isRead)`.
+
+## V2.2. Роль TEACHER в правилах V1
+
+| Эндпоинт V1 | TEACHER |
+|-------------|---------|
+| `GET /api/dashboard` | дашборд преподавателя (без данных деканата) |
+| `GET /api/schedule` | `mode=my` — только его занятия (по совпадению ФИО в расписании) |
+| `GET /api/grades` | `403` — нет собственных оценок |
+| `GET /api/study` | все материалы, `assignments: []` (выданные им задания — в `/api/teacher/assignments`) |
+| `GET /api/requests`, `GET /api/requests/[id]` | как у студента: только свои заявки, чужая или несуществующая → `403` |
+| `POST /api/requests`, `PATCH /api/requests/[id]`, `POST /api/admin/announcements` | `403` |
+| `POST /api/ai/chat` | справочный режим без персональных данных студентов |
+
+Правило IDOR для `GET /api/requests/[id]` в V2 сформулировано через «не ADMIN», а не «STUDENT»: любая роль, кроме деканата, видит только свои заявки.
+
+## V2.3. Изоляция переписок (мессенджер)
+
+1. **Контакт-лист — это ACL.** `canMessage(me, peer)`:
+   - `me` — STUDENT: `peer` — STUDENT той же группы, либо TEACHER, либо ADMIN;
+   - `me` — TEACHER или ADMIN: любой пользователь;
+   - сам себе — нельзя.
+2. `GET /api/messages/[peerId]` выбирает сообщения строго условием
+   `(senderId = session.userId AND receiverId = peerId) OR (senderId = peerId AND receiverId = session.userId)`.
+   Параметр задаёт только **собеседника**, вторым участником всегда остаётся `session.userId`, поэтому запросом нельзя получить переписку двух других людей — она недостижима в принципе.
+3. Если `peer` не проходит `canMessage` или не существует — `403` (одинаково, без оракула существования). Исключение: если переписка уже есть (например, преподаватель написал студенту другой группы), студент может её читать и отвечать.
+4. Отметка «прочитано» ставится только сообщениям, где `receiverId = session.userId`.
+5. Отправитель — всегда `session.userId`; поля `senderId`/`receiverId` из тела игнорируются.
+6. Rate limit — 30 сообщений в минуту на пользователя.
+
+## V2.4. Изоляция броней
+
+- `POST /api/bookings` — владелец брони только `session.userId`.
+- `DELETE /api/bookings/[id]`: бронь загружается по id; если `booking.userId !== session.userId` **или бронь не существует** → `403 { error: "Доступ запрещён: бронь принадлежит другому пользователю (IDOR protection)" }` и лог `[security] IDOR blocked`. Деканат тоже не отменяет чужие брони через этот эндпоинт.
+- `GET /api/bookings`: `myBookings` — только свои; в `allBookingsToday` и сетке занятости чужие брони обезличены: нет `userId`, ФИО и `purpose`, только помещение, слот, число участников и `isMine`.
+
+## V2.5. Кабинет преподавателя
+
+- `requireRole('TEACHER', 'ADMIN')` на всех `/api/teacher/*`; STUDENT → `403`.
+- **Создание**: TEACHER выдаёт задание только группе, в расписании которой он значится преподавателем (`ScheduleItem.teacher` = «Фамилия И. О.»), иначе `403`. ADMIN — любой группе. `authorId` = `session.userId`.
+- **Просмотр**: TEACHER видит только строки с `authorId = session.userId`; ADMIN — все задания с автором. Студенческие данные в ответе ограничены `{ id, fullName, groupName }`.
+- **Оценка** `PATCH /api/teacher/assignments/[id]/grade`: если `assignment.authorId !== session.userId` (для TEACHER) или задания нет → `403` (IDOR, без оракула). Для ADMIN несуществующее → `404`.
+- Изменение БРС при оценке делается в одной транзакции с оценкой и уведомлением.
+
+## V2.6. Новые ограничения ввода
+
+| Поле | Ограничение |
+|------|-------------|
+| `solutionText` | ≤ 20 000 символов |
+| `taskPrompt` | 1…20 000; `starterTemplate` ≤ 20 000; `description` ≤ 2000 |
+| `deadline` | ISO-8601 в будущем, не дальше 180 дней |
+| `brsWeight` | целое 1…40; `gradeAwarded` — целое `0…brsWeight` |
+| `content` сообщения | 1…2000 после `trim` |
+| `date` брони | `YYYY-MM-DD`, сегодня…+14 дней; `timeSlot` — из списка; `purpose` 3…200; `participantsCount` 1…вместимость |
+| `payload` заявки | по схеме типа, сериализованный JSON ≤ 4000 символов |
+| поиск расписания | `query` 1…50 символов, обязателен для `mode=group|room` |

@@ -3,7 +3,7 @@ import { HttpError, json, parseBody, route } from '@/lib/http';
 import { requireRole, requireSession } from '@/lib/session';
 import { updateRequestSchema } from '@/lib/validation';
 import { requestOwnerSelect, serializeRequest } from '@/lib/serializers';
-import { REQUEST_STATUS_LABELS, REQUEST_TYPE_LABELS, type RequestType } from '@/lib/domain';
+import { REQUEST_STATUS_LABELS, REQUEST_TYPE_LABELS, shortName, type RequestType } from '@/lib/domain';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -15,7 +15,7 @@ function parseId(raw: string): number | null {
 
 /**
  * КРИТИЧНЫЙ IDOR-ЭНДПОИНТ (specs/03_DATA_AND_SECURITY.md §4.3).
- * Студент получает только свою заявку. Чужая, несуществующая и некорректная — одинаковый 403,
+ * Любая роль, кроме ADMIN (студент, преподаватель), получает только свою заявку. Чужая, несуществующая и некорректная — одинаковый 403,
  * чтобы по разнице ответов нельзя было перечислить чужие заявки.
  */
 export const GET = route<Ctx>(async (_req, { params }) => {
@@ -28,7 +28,7 @@ export const GET = route<Ctx>(async (_req, { params }) => {
       ? null
       : await prisma.documentRequest.findUnique({ where: { id }, include: { user: { select: requestOwnerSelect } } });
 
-  if (session.role === 'STUDENT') {
+  if (session.role !== 'ADMIN') {
     if (!request || request.userId !== session.userId) {
       console.warn(`[security] IDOR blocked: user=${session.userId} tried request=${rawId}`);
       throw new HttpError(403, IDOR_MESSAGE);
@@ -79,9 +79,3 @@ export const PATCH = route<Ctx>(async (req, { params }) => {
 
   return json({ request: serializeRequest(updated) });
 });
-
-/** «Смирнова Елена Викторовна» → «Смирнова Е. В.» */
-function shortName(full: string): string {
-  const [last, ...rest] = full.trim().split(/\s+/);
-  return [last, ...rest.map((p) => `${p[0]}.`)].join(' ');
-}
