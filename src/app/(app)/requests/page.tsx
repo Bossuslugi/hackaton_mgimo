@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, Clock, Inbox, ScrollText } from 'lucide-react';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { PAYLOAD_LABELS, REQUEST_CATALOG } from '@/components/requests/catalog';
@@ -42,6 +42,15 @@ function StudentRequests() {
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [cert, setCert] = useState<StudentRequest | null>(null);
+
+  // переход из командной палитры: /requests?order=STUDY_CERTIFICATE
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('order') as RequestType | null;
+    if (t && REQUEST_CATALOG.some((c) => c.type === t)) {
+      setFormType(t);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   const list = [...(data ?? [])].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
   const openOf = (t: RequestType) => list.find((r) => r.type === t && (r.status === 'CREATED' || r.status === 'PENDING'));

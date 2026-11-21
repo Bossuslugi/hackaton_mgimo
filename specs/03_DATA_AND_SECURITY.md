@@ -250,3 +250,108 @@
 | `date` брони | `YYYY-MM-DD`, сегодня…+14 дней; `timeSlot` — из списка; `purpose` 3…200; `participantsCount` 1…вместимость |
 | `payload` заявки | по схеме типа, сериализованный JSON ≤ 4000 символов |
 | поиск расписания | `query` 1…50 символов, обязателен для `mode=group|room` |
+
+
+---
+
+# V3 · Данные и безопасность
+
+> Статус: реализовано · Только аддитивные изменения схемы (nullable-поля и поля со значениями по умолчанию, новые модели, индексы).
+
+## V3.1. Изменения моделей
+
+### User
+
+| Поле | Тип | Примечание |
+|------|-----|------------|
+| `avatarUrl` | string? | `data:image/(png\|jpeg\|webp);base64,…` (≤ 500 КБ после декодирования) или `https://`-URL |
+| `avatarUpdatedAt` | DateTime? | версия аватара для кеширования (`?v=`) |
+| `wifiLogin` | string, default `stud_orbita` | логин сети `Orbita-Edu-5G`, в сиде уникален у каждого |
+| `wifiPassword` | string, default `Orbita#2026WiFi` | см. §V3.3 |
+| `wifiUpdatedAt` | DateTime, default now() | |
+| `peCurrentPoints` | int, default 14 | баллы/посещения физкультуры |
+| `peTargetPoints` | int, default 20 | порог зачёта |
+
+### StudyMaterial
+
+`quizJson` (string?) — банк проверочных вопросов по методичке: `[{ question, options[4], correctIndex, explanation }]`.
+
+### CampusEvent (новая)
+
+`id`, `title`, `category` (`Хакатон` \| `Митап` \| `Карьера` \| `Наука` \| `Клубы`), `description`, `date` (`YYYY-MM-DD`), `timeRange`, `location`, `organizer`, `capacity`, `registeredCount`, `tags` (через запятую). Индекс `(date)`.
+
+### EventRegistration (новая)
+
+`id`, `eventId` → CampusEvent, `userId` → User, `ticketCode` (**unique**, `EVT-<год>-XXXX`), `createdAt`. `@@unique([eventId, userId])`, индекс `(userId)`.
+
+### SportSection (новая)
+
+`id`, `sportType` (`Плавание` \| `Скалолазание` \| `Футбол` \| `Баскетбол` \| `Настольный теннис` \| `Тренажёрный зал` \| `Киберспорт`), `title`, `coachName`, `campusLocation`, `scheduleText`, `capacity`, `enrolledCount`.
+
+### SportEnrollment (новая)
+
+`id`, `userId` → User (**unique** — одна секция в семестре), `sectionId` → SportSection, `updatedAt`. Индекс `(sectionId)`.
+
+`registeredCount` и `enrolledCount` — агрегаты, включающие и студентов вне демо-набора; в сиде они согласованы с демо-записями.
+
+### Индексы V3
+
+| Модель | Индексы |
+|--------|---------|
+| User | `groupName`, `role+groupName` |
+| Assignment | `userId`, `userId+status`, `authorId`, `groupName` |
+| Notification | `userId+isRead`, `userId+createdAt` |
+| DocumentRequest | `userId`, `status`, `userId+type+status` |
+| DirectMessage | `senderId`, `receiverId`, `senderId+receiverId+createdAt`, `receiverId+isRead` |
+| RoomBooking | `userId`, `date+roomName` |
+| EventRegistration | `userId`; unique `eventId+userId` |
+| SportEnrollment | `sectionId`; unique `userId` |
+
+## V3.2. Правила доступа V3
+
+| Эндпоинт | STUDENT | TEACHER | ADMIN |
+|----------|---------|---------|-------|
+| `POST/DELETE /api/profile/avatar` | только свой аватар | только свой | только свой |
+| `GET /api/profile/avatar/[userId]` | любой авторизованный (аватар — публичная часть профиля внутри вуза) | ✓ | ✓ |
+| `GET /api/campus/services`, `POST /api/campus/wifi/rotate` | только свои данные | только свои | только свои |
+| `GET /api/campus/events`, `POST …/[id]/toggle` | ✓, своя регистрация | ✓ | ✓ |
+| `GET /api/campus/sports` | ✓ | каталог | каталог |
+| `POST /api/campus/sports/[id]/enroll` | ✓ | `403` | `403` |
+| `POST /api/ai/quiz` | методички **своего факультета**, чужие/несуществующие → `403` | любые | любые |
+
+Во всех V3-эндпоинтах владелец — `session.userId`; ни один из них не принимает `userId` в теле или query. Путь `[id]` у событий и секций — это id **публичного каталога**, а не чужого ресурса; регистрация и запись всегда создаются и удаляются только для `session.userId`.
+
+## V3.3. Секреты пользователя: Wi-Fi и лицензии
+
+- `wifiPassword` — секрет, который владелец должен **видеть** (чтобы ввести на устройстве), поэтому он хранится в открытом виде, а не хешем. Компенсирующие меры:
+  - отдаётся только в `GET /api/campus/services` и `POST /api/campus/wifi/rotate` и только владельцу;
+  - **не входит** в `serializeUser`/`serializeContact`, `/api/auth/me`, дашборды, контекст ИИ и логи;
+  - ответы — `Cache-Control: no-store`;
+  - в production пароль должен жить в RADIUS/IdP, а здесь — только ссылка (`03` §7, ограничения прототипа).
+- Генерация пароля — `crypto.randomInt` (CSPRNG), алфавит из 31 символа без похожих (`0 O 1 I L`), 12 символов → ≈ 59 бит энтропии. Смена — не чаще 5 раз в час на пользователя (`429`).
+- Ключи лицензий не хранятся и не отдаются целиком: `keyHint` — маска с последними 4 символами, производными от `userId` (демо).
+
+## V3.4. Аватары
+
+- `avatarDataUrl` проверяется строго:
+  1. формат `^data:image/(png|jpeg|webp);base64,<base64>$`, без параметров и пробелов;
+  2. размер после декодирования ≤ 500 КБ;
+  3. **сигнатура** совпадает с заявленным типом: PNG `89 50 4E 47 0D 0A 1A 0A`, JPEG `FF D8 FF`, WebP `RIFF????WEBP`. SVG и любые другие типы отклоняются (`400`): SVG может содержать скрипты.
+- Альтернатива — `https://`-URL до 2048 символов, без учётных данных в URL (`user:pass@`), только схема `https`.
+- `GET /api/profile/avatar/[userId]` отдаёт байты из data-URI с заголовками `Content-Type` (из проверенного типа), `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`, `Cache-Control: private, max-age=86400` (URL версионирован `?v=`). Для URL-аватаров — `404` (клиент берёт `https`-ссылку из профиля напрямую), для пользователя без аватара — `404`.
+- В списочных ответах data-URI не передаётся — только ссылка на этот эндпоинт.
+
+## V3.5. Целостность счётчиков (события и секции)
+
+- Запись на событие и в секцию идёт в транзакции Prisma:
+  - инкремент — условный `updateMany` с `registeredCount < capacity` (`enrolledCount < capacity`); если обновлено 0 строк → `409`, транзакция откатывается;
+  - вставка регистрации защищена уникальными индексами (`eventId+userId`, `SportEnrollment.userId`): параллельный дубль падает с `P2002` и превращается в корректный ответ, а не во второй инкремент;
+  - отмена/смена секции декрементирует счётчик не ниже 0.
+- Коллизия `ticketCode` (unique) → до 5 повторных генераций.
+- Прошедшее событие (`date` < сегодня по МСК) изменить нельзя (`409`).
+
+## V3.6. ИИ-квиз
+
+- `materialId` → материал; для STUDENT проверяется `material.faculty === user.faculty`, иначе одинаковый `403` для чужого и несуществующего (без оракула).
+- В LLM уходит только текст методички (≤ 6000 символов), без персональных данных. Ответ LLM валидируется схемой (ровно 4 варианта, `correctIndex` 0–3, непустые строки); невалидный ответ → локальный генератор.
+- Лимит — 20 запросов в минуту на пользователя (отдельно от чата).

@@ -29,6 +29,7 @@ import {
   type RequestStatus,
   type RequestType,
 } from './domain';
+import { avatarHref } from './campus';
 
 export function serializeUser(u: User) {
   return {
@@ -51,11 +52,16 @@ export function serializeUser(u: User) {
     department: u.department,
     campusHoursWeek: u.campusHoursWeek,
     campusHoursSemester: u.campusHoursSemester,
+    // V3 (wifiPassword намеренно не сериализуется — только /api/campus/*)
+    avatarUrl: avatarHref(u),
   };
 }
 
 /** Публичная карточка пользователя для мессенджера и списков — без email и учебных данных. */
-export function serializeContact(u: Pick<User, 'id' | 'fullName' | 'role' | 'groupName' | 'department' | 'position'>) {
+export function serializeContact(
+  u: Pick<User, 'id' | 'fullName' | 'role' | 'groupName' | 'department' | 'position'> &
+    Partial<Pick<User, 'avatarUrl' | 'avatarUpdatedAt'>>,
+) {
   return {
     id: u.id,
     fullName: u.fullName,
@@ -63,8 +69,21 @@ export function serializeContact(u: Pick<User, 'id' | 'fullName' | 'role' | 'gro
     groupName: u.groupName,
     department: u.department,
     position: u.position,
+    avatarUrl: avatarHref({ id: u.id, avatarUrl: u.avatarUrl ?? null, avatarUpdatedAt: u.avatarUpdatedAt ?? null }),
   };
 }
+
+/** Поля для select, достаточные для serializeContact (без тяжёлых и приватных данных, кроме ссылки на аватар). */
+export const contactSelect = {
+  id: true,
+  fullName: true,
+  role: true,
+  groupName: true,
+  department: true,
+  position: true,
+  avatarUrl: true,
+  avatarUpdatedAt: true,
+} as const;
 
 const LESSON_TYPE_CODE: Record<string, string> = {
   Лекция: 'LECTURE',

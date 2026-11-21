@@ -67,6 +67,7 @@ export const config = {
     '/requests/:path*',
     '/profile/:path*',
     '/messages/:path*',
+    '/campus/:path*',
     '/login',
   ],
 };

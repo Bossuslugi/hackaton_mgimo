@@ -3,19 +3,20 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { LogOut, Sparkles, UserRound } from 'lucide-react';
+import { Building2, LogOut, Search, Sparkles, UserRound } from 'lucide-react';
 import { Logo, LogoMark } from '@/components/brand/Logo';
 import { Disclaimer } from '@/components/brand/Disclaimer';
 import { CopilotPanel } from '@/components/copilot/CopilotPanel';
 import { CopilotProvider, useCopilot } from '@/components/copilot/CopilotProvider';
+import { CommandPalette, PaletteProvider, usePalette } from '@/components/shell/CommandPalette';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { cn } from '@/lib/cn';
-import { initials } from '@/lib/format';
 import { ICON_STROKE } from '@/lib/ui';
 import { NotificationsBell } from './NotificationsBell';
 import { MessagesHeaderLink, MessagesUnreadProvider, UnreadBadge, useMessagesUnread } from './MessagesUnread';
-import { isActive, MESSAGES_NAV, navFor } from './nav';
+import { CAMPUS_NAV, isActive, MESSAGES_NAV, navFor } from './nav';
 import { SessionProvider, useSession } from './SessionProvider';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -23,8 +24,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SessionProvider fallback={<ShellSkeleton />}>
       <MessagesUnreadProvider>
         <CopilotProvider>
-          <Frame>{children}</Frame>
-          <CopilotPanel />
+          <PaletteProvider>
+            <Frame>{children}</Frame>
+            <CopilotPanel />
+            <CommandPalette />
+          </PaletteProvider>
         </CopilotProvider>
       </MessagesUnreadProvider>
     </SessionProvider>
@@ -47,20 +51,6 @@ function Frame({ children }: { children: ReactNode }) {
   );
 }
 
-function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-800 font-medium text-slate-700 dark:text-zinc-300',
-        size === 'sm' ? 'size-8 text-xs' : 'size-9 text-sm',
-      )}
-      aria-hidden
-    >
-      {initials(name)}
-    </span>
-  );
-}
-
 function Sidebar() {
   const pathname = usePathname();
   const { user, isAdmin, isTeacher, logout } = useSession();
@@ -68,6 +58,7 @@ function Sidebar() {
   const { unread } = useMessagesUnread();
   const nav = navFor(user.role);
   const msgActive = isActive(pathname, MESSAGES_NAV.href);
+  const campusActive = isActive(pathname, CAMPUS_NAV.href);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] lg:flex">
@@ -105,7 +96,20 @@ function Sidebar() {
           })}
         </ul>
 
-        <p className="px-2 pb-2 pt-6 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">Связь</p>
+        <p className="px-2 pb-2 pt-6 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">Кампус и связь</p>
+        <Link
+          href={CAMPUS_NAV.href}
+          aria-current={campusActive ? 'page' : undefined}
+          className={cn(
+            'flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm transition-colors',
+            campusActive
+              ? 'bg-blue-50 dark:bg-blue-500/10 font-medium text-blue-700 dark:text-blue-400'
+              : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-zinc-50',
+          )}
+        >
+          <CAMPUS_NAV.icon size={18} strokeWidth={ICON_STROKE} />
+          {CAMPUS_NAV.label}
+        </Link>
         <Link
           href={MESSAGES_NAV.href}
           aria-current={msgActive ? 'page' : undefined}
@@ -156,7 +160,7 @@ function Sidebar() {
       </nav>
 
       <div className="flex items-center gap-2.5 border-t border-slate-200 dark:border-zinc-800 p-3">
-        <Avatar name={user.fullName} size="sm" />
+        <UserAvatar name={user.fullName} src={user.avatarUrl} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-slate-900 dark:text-zinc-50">{user.fullName}</p>
           <p className="truncate text-xs text-slate-500 dark:text-zinc-400 tabular-nums">
@@ -180,49 +184,61 @@ function Sidebar() {
 function Header() {
   const { user, isAdmin, isTeacher } = useSession();
   const copilot = useCopilot();
+  const palette = usePalette();
+  const pathname = usePathname();
+  const campusActive = isActive(pathname, CAMPUS_NAV.href);
+  const iconBtn =
+    'inline-flex size-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 lg:size-10';
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/85 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-zinc-950/85">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-2 sm:px-4 lg:h-16 lg:gap-4 lg:px-8">
-        <Link href="/" className="flex min-h-11 items-center px-2 lg:hidden" aria-label="Орбита — на главную">
+    // Frosted glass: только на тонкой шапке, не на прокручиваемых списках (§2.7)
+    <header className="glass sticky top-0 z-30 border-b">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-2 sm:px-4 lg:h-16 lg:gap-4 lg:px-8">
+        <Link href="/" className="flex min-h-11 shrink-0 items-center px-1.5 lg:hidden" aria-label="Орбита — на главную">
           <LogoMark size={26} />
-          <span className="ml-2 text-[15px] font-semibold tracking-tight text-slate-900 dark:text-zinc-50">Орбита</span>
+          <span className="ml-2 hidden text-[15px] font-semibold tracking-tight text-slate-900 dark:text-zinc-50 min-[380px]:inline">Орбита</span>
         </Link>
 
         <button
           type="button"
-          onClick={() => copilot.open()}
-          className="hidden h-10 w-full max-w-md items-center gap-2.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3 text-left text-sm text-slate-500 dark:text-zinc-400 transition-colors hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-white dark:hover:bg-[#12141A] lg:flex"
+          onClick={palette.open}
+          className="hidden h-10 w-full max-w-md items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 text-left text-sm text-slate-500 transition-colors hover:border-slate-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 lg:flex"
         >
-          <Sparkles size={16} strokeWidth={ICON_STROKE} className="text-blue-600 dark:text-blue-400" />
-          <span className="flex-1 truncate">Спросить Орбита Copilot…</span>
-          <kbd className="rounded border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] px-1.5 py-0.5 font-sans text-[11px] text-slate-500 dark:text-zinc-400">
+          <Search size={16} strokeWidth={ICON_STROKE} />
+          <span className="flex-1 truncate">Поиск разделов и команд…</span>
+          <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-[11px] text-slate-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
             ⌘K
           </kbd>
         </button>
 
-        <div className="ml-auto flex items-center gap-0.5 lg:gap-2">
-          <button
-            type="button"
-            onClick={() => copilot.open()}
-            aria-label="Открыть Орбита Copilot"
-            className="inline-flex size-11 items-center justify-center rounded-lg text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-zinc-50 lg:hidden"
-          >
-            <Sparkles size={20} strokeWidth={ICON_STROKE} />
+        <div className="ml-auto flex items-center gap-0.5 lg:gap-1.5">
+          <button type="button" onClick={palette.open} aria-label="Поиск и команды" className={cn(iconBtn, 'lg:hidden')}>
+            <Search size={20} strokeWidth={ICON_STROKE} />
           </button>
+          <button type="button" onClick={() => copilot.open()} aria-label="Открыть Орбита Copilot" title="Орбита Copilot" className={cn(iconBtn, 'max-lg:hidden')}>
+            <Sparkles size={18} strokeWidth={ICON_STROKE} className="text-blue-600 dark:text-blue-400" />
+          </button>
+          <Link
+            href={CAMPUS_NAV.href}
+            aria-label="Кампус и сервисы"
+            aria-current={campusActive ? 'page' : undefined}
+            className={cn(iconBtn, 'lg:hidden', campusActive && 'text-blue-600 dark:text-blue-400')}
+          >
+            <Building2 size={20} strokeWidth={ICON_STROKE} />
+          </Link>
           <MessagesHeaderLink />
           <NotificationsBell />
-          <ThemeToggle />
+          <ThemeToggle className="max-lg:hidden" />
           <span className="mx-1 hidden h-6 w-px bg-slate-200 dark:bg-zinc-700 lg:block" aria-hidden />
           <Link
             href="/profile"
             className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2.5 rounded-lg lg:px-2 lg:hover:bg-slate-100 dark:lg:hover:bg-zinc-800"
             aria-label="Профиль"
           >
-            <Avatar name={user.fullName} size="sm" />
+            <UserAvatar name={user.fullName} src={user.avatarUrl} size="sm" />
             <span className="hidden min-w-0 text-left lg:block">
               <span className="block max-w-40 truncate text-sm font-medium text-slate-900 dark:text-zinc-50">{user.fullName}</span>
-              <span className="block text-xs text-slate-500 dark:text-zinc-400 tabular-nums">
+              <span className="block text-xs text-slate-500 tabular-nums dark:text-zinc-400">
                 {isAdmin ? 'Деканат' : isTeacher ? 'Преподаватель' : user.group}
               </span>
             </span>
@@ -240,7 +256,7 @@ function TabBar() {
   return (
     <nav
       aria-label="Разделы"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="glass fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul className="mx-auto flex h-16 max-w-xl">
         {nav.map((item) => {

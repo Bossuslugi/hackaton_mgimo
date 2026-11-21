@@ -10,6 +10,7 @@ import {
   ClipboardList,
   ExternalLink,
   FileText,
+  ListChecks,
   Search,
   Sparkles,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import { WriteTeacherButton } from '@/components/messages/WriteTeacherButton';
 import { useSession } from '@/components/shell/SessionProvider';
 import { StudentOnly } from '@/components/shell/StudentOnly';
 import { TeacherCabinet } from '@/components/study/TeacherCabinet';
+import { QuizPanel } from '@/components/study/QuizPanel';
 import { Workspace } from '@/components/study/Workspace';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -259,7 +261,12 @@ function Materials({ items }: { items: Material[] }) {
   const [subject, setSubject] = useState('ALL');
   const [category, setCategory] = useState<MaterialCategory | 'ALL'>('ALL');
   const [query, setQuery] = useState('');
-  const [reading, setReading] = useState<Material | null>(null);
+  const [reading, setReadingRaw] = useState<Material | null>(null);
+  const [quiz, setQuiz] = useState(false);
+  const setReading = (m: Material | null) => {
+    setQuiz(false);
+    setReadingRaw(m);
+  };
 
   const subjects = useMemo(() => Array.from(new Set(items.map((m) => m.subject))).sort(), [items]);
   const list = items.filter(
@@ -375,6 +382,16 @@ function Materials({ items }: { items: Material[] }) {
         description={reading ? `${reading.subject} · ${MATERIAL_CATEGORY_LABEL[reading.category]}` : undefined}
         footer={
           reading && (
+            <>
+            {!quiz && (
+              <Button
+                onClick={() => setQuiz(true)}
+                icon={<ListChecks size={16} strokeWidth={ICON_STROKE} />}
+                className="min-h-11 sm:min-h-0"
+              >
+                Проверить знания (Мини-тест от ИИ)
+              </Button>
+            )}
             <Button
               variant="secondary"
               icon={<Sparkles size={16} strokeWidth={ICON_STROKE} className="text-blue-600 dark:text-blue-400" />}
@@ -391,10 +408,13 @@ function Materials({ items }: { items: Material[] }) {
             >
               Разобрать с ИИ
             </Button>
+            </>
           )
         }
       >
-        {reading && (
+        {reading && quiz ? (
+          <QuizPanel materialId={reading.id} onBack={() => setQuiz(false)} />
+        ) : reading && (
           <div className="mx-auto max-w-2xl py-1">
             {reading.contentMarkdown.trim() ? (
               <Markdown source={reading.contentMarkdown} />

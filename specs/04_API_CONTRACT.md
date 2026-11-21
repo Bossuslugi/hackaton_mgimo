@@ -526,3 +526,148 @@ TEACHER — только `authorId = session.userId`; ADMIN — все зада�
   - поиск расписания: `и2101`, латинское `M3203`, `лаб. 105`, `корпус г`;
   - оценка добавляет балл в БРС, переоценка учитывает только разницу;
   - сумма часов по дням = `campusHoursWeek`, сумма процентов = 100, рейтинг в группе.
+
+
+---
+
+# V3 · API-контракт
+
+> Статус: реализовано · Ответы V1/V2 не меняются, кроме одного **добавленного** поля `avatarUrl` у `User` и `Contact`. Правила доступа — `03_DATA_AND_SECURITY.md` §V3.
+
+## V3.1. Изменения общих объектов
+
+```ts
+User    += { avatarUrl: string | null }   // '/api/profile/avatar/<id>?v=…' или https-URL; wifi-поля НЕ входят
+Contact += { avatarUrl: string | null }
+
+CampusEvent {
+  id; title; category: 'Хакатон'|'Митап'|'Карьера'|'Наука'|'Клубы'; description;
+  date: 'YYYY-MM-DD'; timeRange: '18:30 – 21:00'; location; organizer;
+  capacity: number; registeredCount: number; spotsLeft: number; tags: string[];
+  isPast: boolean; isRegistered: boolean;
+  ticketCode: string | null;          // 'EVT-2026-K7QM' — только своя регистрация
+  registeredAt: ISO | null;
+}
+
+SportSection {
+  id; sportType: 'Плавание'|'Скалолазание'|'Футбол'|'Баскетбол'|'Настольный теннис'|'Тренажёрный зал'|'Киберспорт';
+  title; coachName; campusLocation; scheduleText: 'Вт, Чт • 17:00 – 18:30';
+  capacity: number; enrolledCount: number; spotsLeft: number; isCurrent: boolean;
+}
+
+QuizQuestion { question: string; options: [string, string, string, string]; correctIndex: 0|1|2|3; explanation: string }
+```
+
+## V3.2. Аватар профиля
+
+### `POST /api/profile/avatar`
+
+Тело: `{ avatarDataUrl: "data:image/png;base64,…" }` (PNG / JPEG / WebP, ≤ 500 КБ после декодирования) **или** `{ avatarDataUrl: "https://…" }` (алиас поля — `avatarUrl`).
+
+- `200 { avatarUrl: "/api/profile/avatar/<id>?v=…", kind: "upload" }` или `{ avatarUrl: "https://…", kind: "url" }`
+- `400` — другой MIME (в т.ч. SVG), сигнатура файла не совпадает с типом, больше 500 КБ, URL не `https`, URL с логином/паролем.
+
+### `DELETE /api/profile/avatar`
+
+`200 { ok: true, avatarUrl: null }`.
+
+### `GET /api/profile/avatar/[userId]`
+
+Байты загруженного аватара: `Content-Type: image/png|jpeg|webp`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`, `Cache-Control: private, max-age=86400`. `404` — нет аватара или он задан https-ссылкой. Нужна сессия (`401`).
+
+## V3.3. IT-доступы
+
+### `GET /api/campus/services`
+
+```json
+{
+  "wifiSsid": "Orbita-Edu-5G",
+  "wifiLogin": "a.sokolov",
+  "wifiPassword": "Orb-K7QM-2XRT-9PHW",
+  "wifiUpdatedAt": "2026-11-21T09:12:44.000Z",
+  "corporateEmail": "alexey.sokolov@edu.orbita.ru",
+  "studentCardNumber": "250417",
+  "licenses": [
+    { "name": "JetBrains All Products Pack", "status": "Активна до 31.08.2027", "keyHint": "JB-••••-••••-7F3A", "description": "…" },
+    { "name": "GitHub Student Developer Pack", "status": "Активна", "keyHint": "GH-••••-••••-1C9E", "description": "…" },
+    { "name": "Облачный грант 10 000 ₽", "status": "Доступен: активируйте до 31.12.2026", "keyHint": "CLD-••••-••••-B04D", "description": "…" },
+    { "name": "Figma Education", "status": "Активна", "keyHint": "FIG-••••-••••-52AA", "description": "…" }
+  ]
+}
+```
+
+Только данные `session.userId`, `Cache-Control: no-store`. Для TEACHER/ADMIN статусы лицензий отличаются (GitHub Student Pack недоступен).
+
+### `POST /api/campus/wifi/rotate`
+
+Без тела. `200 { wifiSsid, wifiLogin, wifiPassword, wifiUpdatedAt }` — новый пароль `Orb-XXXX-XXXX-XXXX` (CSPRNG, алфавит без `0 O 1 I L`) уже сохранён в БД. `429` — больше 5 смен в час.
+
+## V3.4. Мероприятия
+
+### `GET /api/campus/events`
+
+`200 { events: CampusEvent[], categories: string[], myRegistrations: number }` — сортировка по дате и времени; `isRegistered` и `ticketCode` относятся к текущему пользователю.
+
+### `POST /api/campus/events/[id]/toggle`
+
+Без тела. Записывает, если пользователь не записан, или отменяет запись.
+
+- `200 { action: "registered" | "unregistered", event: CampusEvent }` — после записи `ticketCode` = `EVT-<год>-XXXX`, `registeredCount` +1; после отмены −1 и `ticketCode: null`.
+- `404` — события нет · `409` — все места заняты или событие прошло.
+- Параллельные нажатия одного пользователя не создают двух регистраций и не сдвигают счётчик.
+
+## V3.5. Физкультура
+
+### `GET /api/campus/sports`
+
+```json
+{
+  "sections": SportSection[],
+  "currentSectionId": "…" | null,
+  "enrolledAt": ISO | null,
+  "peCurrentPoints": 16, "peTargetPoints": 20, "peProgressPercent": 80,
+  "canEnroll": true
+}
+```
+
+### `POST /api/campus/sports/[id]/enroll` — только STUDENT
+
+Без тела. Одна транзакция: место в прежней секции освобождается, в новой занимается, запись обновляется, создаётся `Notification { category: 'SCHEDULE', title: 'Запись на физкультуру подтверждена' }`.
+
+- `200 { ok: true, currentSectionId, previousSection: string | null, section: SportSection }`
+- `403` — не студент · `404` — секции нет · `409` — нет свободных мест (прежняя запись сохраняется) или уже записан в эту секцию.
+
+## V3.6. ИИ-квиз по методичке
+
+### `POST /api/ai/quiz`
+
+Тело: `{ materialId: string }`.
+
+`200`:
+
+```json
+{
+  "materialId": "…", "title": "Методичка: стек и правильные скобочные последовательности", "subject": "Алгоритмы и структуры данных",
+  "questions": [
+    { "question": "Что выведет check(\"([)]\")?", "options": ["NO 1", "YES", "NO 3", "NO 5"], "correctIndex": 2,
+      "explanation": "На третьем символе «)» вершина стека — «[», пара не совпадает: ошибка в позиции 3." }
+  ],
+  "source": "llm" | "bank" | "rules"
+}
+```
+
+- `source: "llm"` — сгенерировано LLM (`AI_API_KEY`) и прошло проверку структуры; `"bank"` — банк вопросов методички из БД (`quizJson`); `"rules"` — автоматические вопросы «заполните пропуск» по ключевым терминам (если банка нет или он неполный).
+- Варианты перемешиваются на каждый запрос, `correctIndex` указывает на правильный после перемешивания.
+- `400` — нет `materialId` · `403` — STUDENT и методичка другого факультета или не существует · `404` — TEACHER/ADMIN, методички нет · `422` — по тексту не удалось составить ни одного вопроса · `429` — 20 запросов/мин.
+
+## V3.7. Проверка контракта V3
+
+На собранном приложении (`next build && next start`), каждый набор — на свежем сиде:
+
+- регресс V1 (58) и V2 (97) — зелёные без изменений;
+- 50 сценариев V3, в том числе:
+  - `wifiPassword` отсутствует в `/api/auth/me`, логине и контактах; смена пароля сохраняется в БД, не затрагивает других, 6-я смена за час → `429`;
+  - аватары: SVG и HTML под видом PNG → `400`, > 500 КБ → `400`, `http:`/`javascript:`/URL с учётными данными → `400`; отдача байтов с `nosniff` и CSP; в списках только ссылка, без data-URI;
+  - билеты видит только владелец; заполненное событие → `409`; 5 параллельных переключений оставляют счётчик согласованным с фактом регистрации;
+  - смена секции: −1 в старой, +1 в новой; заполненная секция → `409` без изменений; преподаватель → `403`;
+  - квиз: 3 вопроса × 4 варианта, варианты перемешиваются; методичка чужого факультета и несуществующая → одинаковый `403`.
