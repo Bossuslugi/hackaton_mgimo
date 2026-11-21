@@ -117,43 +117,43 @@ export function CertificateDocument({ request, user }: { request: StudentRequest
   return (
     <article
       data-print-root
-      className="mx-auto w-full max-w-[720px] rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5 text-[13px] leading-relaxed text-slate-900 dark:text-zinc-50 sm:p-8"
+      className="mx-auto w-full max-w-[720px] rounded-lg border border-slate-300 bg-white p-5 text-[13px] leading-relaxed text-slate-900 shadow-sm sm:p-8"
     >
-      <header className="flex flex-col gap-4 border-b border-slate-900 dark:border-zinc-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-900 pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <LogoMark size={36} />
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider">Орбита · демонстрационный вуз</p>
-            <p className="mt-0.5 text-xs text-slate-600 dark:text-zinc-400">Деканат {user.faculty ? `факультета «${user.faculty}»` : 'факультета'}</p>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">dekanat@edu.orbita.ru</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-900">Орбита · демонстрационный вуз</p>
+            <p className="mt-0.5 text-xs text-slate-600">Деканат {user.faculty ? `факультета «${user.faculty}»` : 'факультета'}</p>
+            <p className="text-xs text-slate-500">dekanat@edu.orbita.ru</p>
           </div>
         </div>
         <dl className="shrink-0 text-xs sm:text-right">
           <div className="flex gap-1.5 sm:justify-end">
-            <dt className="text-slate-500 dark:text-zinc-400">Рег. №</dt>
-            <dd className="font-mono font-medium tabular-nums">{reg}</dd>
+            <dt className="text-slate-500">Рег. №</dt>
+            <dd className="font-mono font-medium tabular-nums text-slate-900">{reg}</dd>
           </div>
           <div className="flex gap-1.5 sm:justify-end">
-            <dt className="text-slate-500 dark:text-zinc-400">от</dt>
-            <dd className="tabular-nums">{fmtDateShort(signed)}</dd>
+            <dt className="text-slate-500">от</dt>
+            <dd className="tabular-nums text-slate-900">{fmtDateShort(signed)}</dd>
           </div>
         </dl>
       </header>
 
       <div className="py-6 text-center">
-        <h3 className="text-lg font-semibold uppercase tracking-[0.2em]">{t.head}</h3>
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{t.sub}</p>
+        <h3 className="text-lg font-semibold uppercase tracking-[0.2em] text-slate-900">{t.head}</h3>
+        <p className="mt-1 text-xs text-slate-500">{t.sub}</p>
       </div>
 
-      <div className="space-y-3 sm:text-justify">
+      <div className="space-y-3 sm:text-justify text-slate-900">
         <Body r={request} u={user} />
-        <p className="text-slate-600 dark:text-zinc-400">
+        <p className="text-slate-600">
           Дата формирования: <span className="tabular-nums">{fmtDate(signed)}</span>.
         </p>
       </div>
 
       <footer className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-[340px] rounded-lg border-[1.5px] border-blue-600 dark:border-blue-500 p-3 text-blue-700 dark:text-blue-400">
+        <div className="max-w-[340px] rounded-lg border-[1.5px] border-blue-600 bg-blue-50/50 p-3 text-blue-700">
           <p className="text-[10px] font-semibold uppercase leading-tight tracking-wider">
             Документ подписан
             <br />
@@ -161,32 +161,32 @@ export function CertificateDocument({ request, user }: { request: StudentRequest
           </p>
           <dl className="mt-2 space-y-0.5 text-[11px] leading-snug">
             <div className="flex gap-1.5">
-              <dt className="shrink-0 text-blue-600/80 dark:text-blue-400/80">Сертификат</dt>
+              <dt className="shrink-0 text-blue-600/80">Сертификат</dt>
               <dd className="font-mono tabular-nums break-all">{certSerial(reg)}</dd>
             </div>
             <div className="flex gap-1.5">
-              <dt className="shrink-0 text-blue-600/80 dark:text-blue-400/80">Владелец</dt>
+              <dt className="shrink-0 text-blue-600/80">Владелец</dt>
               <dd>{request.signedBy ?? 'Деканат, уполномоченный сотрудник'}</dd>
             </div>
             <div className="flex gap-1.5">
-              <dt className="shrink-0 text-blue-600/80 dark:text-blue-400/80">Действителен</dt>
+              <dt className="shrink-0 text-blue-600/80">Действителен</dt>
               <dd className="tabular-nums">с 01.09.2026 по 31.08.2027</dd>
             </div>
           </dl>
         </div>
         <div className="flex items-end gap-3 self-start sm:self-auto">
-          <div className="text-[11px] leading-snug text-slate-500 dark:text-zinc-400 sm:text-right">
+          <div className="text-[11px] leading-snug text-slate-500 sm:text-right">
             Проверка
             <br />
             подлинности
             <br />
-            <span className="font-mono tabular-nums text-slate-700 dark:text-zinc-300">{reg}</span>
+            <span className="font-mono tabular-nums text-slate-700">{reg}</span>
           </div>
           <QRCode value={qrText} size={96} title={`QR-код проверки документа ${reg}`} />
         </div>
       </footer>
 
-      <p className="mt-8 border-t border-slate-200 dark:border-zinc-800 pt-3 text-[10px] leading-relaxed text-slate-400 dark:text-zinc-500">
+      <p className="mt-8 border-t border-slate-200 pt-3 text-[10px] leading-relaxed text-slate-400">
         Сформировано в концепт-прототипе «Орбита» для конкурса «Цифровой деканат будущего». Не является официальным
         документом и не имеет юридической силы. Все персональные данные вымышленные.
       </p>
