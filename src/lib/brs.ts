@@ -4,6 +4,7 @@ import type { SubjectGrade } from './types';
 /** Порог «отлично» и условие повышенной стипендии. */
 export const STIPEND_THRESHOLD = 85;
 export const PASS_THRESHOLD = 60;
+export const ADMISSION_THRESHOLD = 50;
 export const BRS_MAX = 100;
 
 export interface GradeInfo {

@@ -27,16 +27,12 @@ function getSecret(): Uint8Array {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('JWT_SECRET не задан или короче 32 символов');
   }
-  // Dev-режим: случайный секрет на время жизни процесса — стенд запускается без .env.
-  const g = globalThis as G;
-  if (!g.__orbitaDevSecret) {
-    g.__orbitaDevSecret = crypto.getRandomValues(new Uint8Array(32));
-  }
+  // Dev-режим: детерминированный fallback для совпадения секретов между Edge (middleware) и Node.js (API)
   if (!warned) {
     warned = true;
-    console.warn('[security] JWT_SECRET не задан — используется временный dev-секрет (сессии сбросятся при перезапуске).');
+    console.warn('[security] JWT_SECRET не задан — используется dev-fallback секрет.');
   }
-  return g.__orbitaDevSecret;
+  return new TextEncoder().encode('orbita-dev-insecure-secret-key-32-chars-min!');
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Bell, BellOff, DoorOpen, Megaphone, Info } from 'lucide-react';
-import { get } from '@/lib/api';
+import { get, post } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { fmtDateTime } from '@/lib/format';
 import { toDashboard } from '@/lib/normalize';
@@ -35,6 +35,7 @@ export function NotificationsBell() {
   useEffect(() => {
     if (!open) return;
     setSeen(true);
+    post('/api/notifications/read-all').catch(() => {});
     const onDown = (e: MouseEvent) => {
       if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
     };

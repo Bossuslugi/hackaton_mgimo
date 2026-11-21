@@ -19,6 +19,7 @@ import {
   gradeOf,
   headroom,
   PASS_THRESHOLD,
+  ADMISSION_THRESHOLD,
   projectedTotal,
   STIPEND_THRESHOLD,
   type SimDelta,
@@ -50,7 +51,7 @@ function Grades() {
   const delta = (s: SubjectGrade) => deltas[s.id] ?? zeroDelta();
   const totals = subjects.map((s) => (mode === 'sim' ? projectedTotal(s, delta(s)) : s.total));
   const avg = average(totals);
-  const debts = subjects.filter((s, i) => totals[i] < PASS_THRESHOLD || (mode === 'current' && s.hasDebt));
+  const debts = subjects.filter((s, i) => totals[i] < ADMISSION_THRESHOLD || (mode === 'current' && s.hasDebt));
   const below = subjects
     .map((s, i) => ({ s, t: totals[i] }))
     .filter((x) => x.t < STIPEND_THRESHOLD);
@@ -240,7 +241,7 @@ const PARTS: { key: keyof SimDelta; label: string; val: (s: SubjectGrade) => num
 
 function SubjectCard({ s }: { s: SubjectGrade }) {
   const g = gradeOf(s.total);
-  const debt = s.total < PASS_THRESHOLD || s.hasDebt;
+  const debt = s.total < ADMISSION_THRESHOLD || s.hasDebt;
   return (
     <Card className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
