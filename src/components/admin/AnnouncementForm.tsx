@@ -84,14 +84,14 @@ export function AnnouncementForm() {
     }
   }
 
-  const err = (k: string) => errors[k] && <p className="mt-1 text-xs text-red-700">{errors[k]}</p>;
+  const err = (k: string) => errors[k] && <p className="mt-1 text-xs text-red-700 dark:text-red-300">{errors[k]}</p>;
 
   return (
     <Card className="p-4 sm:p-5 lg:grid lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:gap-10 lg:p-6">
       <div className="min-w-0">
-        <h2 className="text-sm font-medium text-slate-900">Срочное объявление</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Придёт в колокольчик и на «Фокус дня» студентов</p>
-        <p className="mt-3 hidden text-sm leading-relaxed text-slate-500 lg:block">
+        <h2 className="text-sm font-medium text-slate-900 dark:text-zinc-50">Срочное объявление</h2>
+        <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Придёт в колокольчик и на «Фокус дня» студентов</p>
+        <p className="mt-3 hidden text-sm leading-relaxed text-slate-500 dark:text-zinc-400 lg:block">
           Перенос аудитории сразу отмечается в расписании группы янтарным бейджем «Перенос» со старой и новой аудиторией.
         </p>
         {published.length > 0 && <Published items={published} />}
@@ -213,19 +213,19 @@ export function AnnouncementForm() {
 
 function Published({ items }: { items: Announcement[] }) {
   return (
-    <div className="mt-5 border-t border-slate-200 pt-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Опубликовано в этой сессии</p>
+    <div className="mt-5 border-t border-slate-200 dark:border-zinc-800 pt-4">
+      <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">Опубликовано в этой сессии</p>
       <ul className="mt-2 space-y-2">
             {items.map((a) => (
               <li key={a.id} className="flex gap-2.5 text-sm">
                 {a.type === 'ROOM_CHANGE' ? (
-                  <DoorOpen size={16} strokeWidth={ICON_STROKE} className="mt-0.5 shrink-0 text-amber-600" />
+                  <DoorOpen size={16} strokeWidth={ICON_STROKE} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
                 ) : (
-                  <Megaphone size={16} strokeWidth={ICON_STROKE} className="mt-0.5 shrink-0 text-red-600" />
+                  <Megaphone size={16} strokeWidth={ICON_STROKE} className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
                 )}
                 <div className="min-w-0">
-                  <p className={cn('font-medium text-slate-900 break-words')}>{a.title}</p>
-                  <p className="text-xs text-slate-500 tabular-nums">
+                  <p className={cn('font-medium text-slate-900 dark:text-zinc-50 break-words')}>{a.title}</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">
                     {fmtDateTime(a.createdAt)}
                     {a.group ? ` · ${a.group}` : ' · все группы'}
                   </p>

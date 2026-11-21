@@ -1,9 +1,22 @@
 @import 'tailwindcss';
 
+/*
+ * Obsidian Dark — specs/02_DESIGN_SYSTEM.md §2.6.
+ * Класс .dark на <html> ставит inline-скрипт в layout.tsx до первой отрисовки (без мигания).
+ * Вариант ограничен @media screen: печатная справка всегда уходит на бумагу в светлой теме.
+ */
+@custom-variant dark {
+  @media screen {
+    &:where(.dark, .dark *) {
+      @slot;
+    }
+  }
+}
+
 /* Токены дизайн-системы — specs/02_DESIGN_SYSTEM.md §2 */
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --color-page: #f8fafc;
   --color-card: #ffffff;
@@ -13,6 +26,12 @@
   --color-ink-2: #475569;
   --color-ink-3: #64748b;
   --color-brand: #2563eb;
+
+  /* Obsidian Dark */
+  --color-obsidian: #09090b;
+  --color-obsidian-card: #12141a;
+  --color-obsidian-elevated: #18181b;
+  --color-obsidian-line: #27272a;
 }
 
 @layer base {
@@ -20,6 +39,31 @@
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
     background: #f8fafc;
+    color-scheme: light;
+  }
+  @media screen {
+    html.dark {
+      background: #09090b;
+      color-scheme: dark;
+    }
+    html.dark ::selection {
+      background: rgb(59 130 246 / 0.35);
+    }
+    html.dark :focus-visible {
+      outline-color: #3b82f6;
+    }
+    html.dark input[type='range'] {
+      accent-color: #3b82f6;
+    }
+  }
+  /* Плавная смена темы: класс вешается переключателем на 250 мс */
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition-property: background-color, border-color, color, fill, stroke !important;
+    transition-duration: 200ms !important;
+    transition-timing-function: ease-out !important;
   }
   body {
     color: #0f172a;
@@ -100,6 +144,22 @@
   border: 1.5px solid #2563eb;
 }
 .range:disabled { cursor: not-allowed; opacity: 0.5; }
+@media screen {
+  .dark .range::-webkit-slider-runnable-track {
+    background: linear-gradient(to right, #3b82f6 var(--fill, 0%), #27272a var(--fill, 0%));
+  }
+  .dark .range::-moz-range-track { background: #27272a; }
+  .dark .range::-moz-range-progress { background: #3b82f6; }
+  .dark .range::-webkit-slider-thumb { background: #18181b; border-color: #3b82f6; }
+  .dark .range::-moz-range-thumb { background: #18181b; border-color: #3b82f6; }
+}
+
+/* Редактор решения: таб-размер и моноширинный шрифт JetBrains Mono */
+.code-editor {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+  tab-size: 4;
+}
 
 /* Печать цифровой справки: на бумагу уходит только [data-print-root] */
 @media print {

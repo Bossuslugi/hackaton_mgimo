@@ -59,24 +59,24 @@ export function CopilotPanel() {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 hidden bg-slate-900/20 lg:block" onClick={c.close} aria-hidden />
+      <div className="fixed inset-0 z-40 hidden bg-slate-900/20 dark:bg-black/40 lg:block" onClick={c.close} aria-hidden />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Орбита Copilot"
         className={cn(
-          'fixed inset-0 z-50 flex flex-col bg-white',
-          'lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[440px] lg:border-l lg:border-slate-200',
+          'fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#12141A]',
+          'lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[440px] lg:border-l lg:border-slate-200 dark:lg:border-zinc-800',
           'animate-[drawer-in_200ms_ease-out]',
         )}
       >
         {/* header */}
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 pl-4 pr-2 lg:h-16">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 dark:border-zinc-800 pl-4 pr-2 lg:h-16">
           <div className="flex min-w-0 items-center gap-2.5">
             <LogoMark size={24} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">Орбита Copilot</p>
-              <p className="truncate text-xs text-slate-500">{MODE_LABEL[c.mode]}</p>
+              <p className="truncate text-sm font-semibold text-slate-900 dark:text-zinc-50">Орбита Copilot</p>
+              <p className="truncate text-xs text-slate-500 dark:text-zinc-400">{MODE_LABEL[c.mode]}</p>
             </div>
           </div>
           <div className="flex items-center">
@@ -84,7 +84,7 @@ export function CopilotPanel() {
               <button
                 type="button"
                 onClick={c.reset}
-                className="inline-flex size-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                className="inline-flex size-11 items-center justify-center rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-zinc-50"
                 aria-label="Новый диалог"
                 title="Новый диалог"
               >
@@ -94,7 +94,7 @@ export function CopilotPanel() {
             <button
               type="button"
               onClick={c.close}
-              className="inline-flex size-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              className="inline-flex size-11 items-center justify-center rounded-lg text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-zinc-50"
               aria-label="Закрыть Copilot"
             >
               <X size={20} strokeWidth={ICON_STROKE} />
@@ -103,7 +103,7 @@ export function CopilotPanel() {
         </div>
 
         {/* mode */}
-        <div className="shrink-0 border-b border-slate-200 px-4 py-3">
+        <div className="shrink-0 border-b border-slate-200 dark:border-zinc-800 px-4 py-3">
           <Segmented<CopilotMode>
             block
             ariaLabel="Режим ассистента"
@@ -115,20 +115,20 @@ export function CopilotPanel() {
             ]}
           />
           {c.context && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-2.5 pr-1">
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 py-1.5 pl-2.5 pr-1">
               {c.context.kind === 'assignment' ? (
-                <ClipboardList size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-500" />
+                <ClipboardList size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-500 dark:text-zinc-400" />
               ) : (
-                <BookOpen size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-500" />
+                <BookOpen size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-500 dark:text-zinc-400" />
               )}
-              <p className="min-w-0 flex-1 truncate text-xs text-slate-600">
-                <span className="text-slate-500">{c.context.kind === 'assignment' ? 'ДЗ' : 'Материал'} · </span>
-                <span className="font-medium text-slate-900">{c.context.title}</span>
+              <p className="min-w-0 flex-1 truncate text-xs text-slate-600 dark:text-zinc-400">
+                <span className="text-slate-500 dark:text-zinc-400">{c.context.kind === 'assignment' ? 'ДЗ' : 'Материал'} · </span>
+                <span className="font-medium text-slate-900 dark:text-zinc-50">{c.context.title}</span>
               </p>
               <button
                 type="button"
                 onClick={c.clearContext}
-                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-white hover:text-slate-700"
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-400 dark:text-zinc-500 hover:bg-white dark:hover:bg-[#12141A] hover:text-slate-700 dark:hover:text-zinc-300"
                 aria-label="Убрать контекст"
               >
                 <X size={14} strokeWidth={ICON_STROKE} />
@@ -141,8 +141,8 @@ export function CopilotPanel() {
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {c.messages.length === 0 ? (
             <div>
-              <div className="rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-2 text-slate-900">
+              <div className="rounded-xl border border-slate-200 dark:border-zinc-800 p-4">
+                <div className="flex items-center gap-2 text-slate-900 dark:text-zinc-50">
                   {c.mode === 'TUTOR' ? (
                     <BookOpen size={16} strokeWidth={ICON_STROKE} />
                   ) : (
@@ -150,16 +150,16 @@ export function CopilotPanel() {
                   )}
                   <p className="text-sm font-medium">{MODE_INTRO[c.mode].title}</p>
                 </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{MODE_INTRO[c.mode].text}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">{MODE_INTRO[c.mode].text}</p>
               </div>
-              <p className="mb-2 mt-5 text-xs font-medium uppercase tracking-wider text-slate-500">Попробуйте спросить</p>
-              <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200">
+              <p className="mb-2 mt-5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">Попробуйте спросить</p>
+              <ul className="divide-y divide-slate-200 dark:divide-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-800">
                 {c.suggestions.map((s) => (
                   <li key={s}>
                     <button
                       type="button"
                       onClick={() => c.send(s)}
-                      className="flex min-h-11 w-full items-center px-3.5 py-2.5 text-left text-sm text-slate-700 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-slate-50 hover:text-slate-900"
+                      className="flex min-h-11 w-full items-center px-3.5 py-2.5 text-left text-sm text-slate-700 dark:text-zinc-300 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-slate-50 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-zinc-50"
                     >
                       {s}
                     </button>
@@ -172,16 +172,16 @@ export function CopilotPanel() {
               {c.messages.map((m) =>
                 m.role === 'user' ? (
                   <div key={m.id} className="flex justify-end">
-                    <p className="max-w-[85%] whitespace-pre-wrap break-words rounded-xl rounded-br-md bg-slate-100 px-3.5 py-2.5 text-sm text-slate-900">
+                    <p className="max-w-[85%] whitespace-pre-wrap break-words rounded-xl rounded-br-md bg-slate-100 dark:bg-zinc-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-zinc-50">
                       {m.content}
                     </p>
                   </div>
                 ) : (
                   <div key={m.id} className="flex gap-2.5">
                     <LogoMark size={20} className="mt-0.5" />
-                    <div className={cn('min-w-0 flex-1', m.error && 'text-red-700')}>
+                    <div className={cn('min-w-0 flex-1', m.error && 'text-red-700 dark:text-red-300')}>
                       {m.error ? (
-                        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <p className="rounded-lg border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/60 px-3 py-2 text-sm text-red-700 dark:text-red-300">
                           {m.content}
                         </p>
                       ) : (
@@ -198,7 +198,7 @@ export function CopilotPanel() {
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className="size-1.5 animate-pulse rounded-full bg-slate-400"
+                        className="size-1.5 animate-pulse rounded-full bg-slate-400 dark:bg-zinc-500"
                         style={{ animationDelay: `${i * 150}ms` }}
                       />
                     ))}
@@ -212,7 +212,7 @@ export function CopilotPanel() {
                       key={s}
                       type="button"
                       onClick={() => c.send(s)}
-                      className="min-h-9 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-left text-xs text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                      className="min-h-9 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] px-3 py-1.5 text-left text-xs text-slate-700 dark:text-zinc-300 transition-colors hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-900"
                     >
                       {s}
                     </button>
@@ -224,13 +224,13 @@ export function CopilotPanel() {
         </div>
 
         {/* composer */}
-        <div className="shrink-0 border-t border-slate-200 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+        <div className="shrink-0 border-t border-slate-200 dark:border-zinc-800 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               submit();
             }}
-            className="flex items-end gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-3 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/15"
+            className="flex items-end gap-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] p-1.5 pl-3 focus-within:border-blue-600 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-600/15 dark:focus-within:ring-blue-500/15"
           >
             <textarea
               ref={inputRef}
@@ -248,19 +248,19 @@ export function CopilotPanel() {
                 }
               }}
               placeholder={c.mode === 'TUTOR' ? 'Спросите про задание или тему…' : 'Спросите про регламенты, справки, стипендию…'}
-              className="max-h-36 min-h-9 flex-1 resize-none bg-transparent py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+              className="max-h-36 min-h-9 flex-1 resize-none bg-transparent py-2 text-sm text-slate-900 dark:text-zinc-50 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none"
               aria-label="Сообщение ассистенту"
             />
             <button
               type="submit"
               disabled={!draft.trim() || c.pending}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 dark:bg-blue-500 text-white transition-colors hover:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-slate-200 dark:disabled:bg-zinc-700 disabled:text-slate-400 dark:disabled:text-zinc-500"
               aria-label="Отправить"
             >
               <ArrowUp size={18} strokeWidth={ICON_STROKE} />
             </button>
           </form>
-          <p className="mt-2 text-center text-[11px] text-slate-400">ИИ может ошибаться. Сверяйтесь с регламентами деканата.</p>
+          <p className="mt-2 text-center text-[11px] text-slate-400 dark:text-zinc-500">ИИ может ошибаться. Сверяйтесь с регламентами деканата.</p>
         </div>
       </aside>
     </>

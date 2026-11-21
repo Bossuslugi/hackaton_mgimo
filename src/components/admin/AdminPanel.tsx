@@ -25,7 +25,7 @@ export function AdminPanel({ queueOnly = false }: { queueOnly?: boolean }) {
       label: 'Ждут решения',
       value: list.filter((r) => r.status === 'PENDING' || r.status === 'CREATED').length,
       icon: Clock,
-      tone: 'text-amber-600',
+      tone: 'text-amber-600 dark:text-amber-400',
     },
     {
       label: 'Подписано сегодня',
@@ -33,10 +33,10 @@ export function AdminPanel({ queueOnly = false }: { queueOnly?: boolean }) {
         (r) => r.status === 'APPROVED' && new Date(r.signedAt ?? r.updatedAt ?? 0).toDateString() === today,
       ).length,
       icon: CircleCheck,
-      tone: 'text-emerald-600',
+      tone: 'text-emerald-600 dark:text-emerald-400',
     },
-    { label: 'Отклонено', value: list.filter((r) => r.status === 'REJECTED').length, icon: CircleX, tone: 'text-red-600' },
-    { label: 'Всего заявок', value: list.length, icon: Inbox, tone: 'text-slate-500' },
+    { label: 'Отклонено', value: list.filter((r) => r.status === 'REJECTED').length, icon: CircleX, tone: 'text-red-600 dark:text-red-400' },
+    { label: 'Всего заявок', value: list.length, icon: Inbox, tone: 'text-slate-500 dark:text-zinc-400' },
   ];
 
   return (
@@ -51,14 +51,14 @@ export function AdminPanel({ queueOnly = false }: { queueOnly?: boolean }) {
         <div className="mb-3 grid grid-cols-2 gap-3 lg:mb-4 lg:grid-cols-4 lg:gap-4">
           {stats.map((s) => (
             <Card key={s.label} className="p-4">
-              <div className="flex items-center gap-2 text-slate-500">
+              <div className="flex items-center gap-2 text-slate-500 dark:text-zinc-400">
                 <s.icon size={14} strokeWidth={ICON_STROKE} className={cn(s.tone)} />
                 <span className="truncate text-xs">{s.label}</span>
               </div>
               {state.loading && !state.data ? (
                 <Skeleton className="mt-2 h-8 w-12" />
               ) : (
-                <p className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">{s.value}</p>
+                <p className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50 tabular-nums">{s.value}</p>
               )}
             </Card>
           ))}

@@ -130,8 +130,11 @@ export const MATERIAL_CATEGORY_LABEL: Record<MaterialCategory, string> = {
 export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
   STUDY_CERTIFICATE: 'Справка об обучении',
   MILITARY_CERTIFICATE: 'Справка для военкомата',
+  ACADEMIC_TRANSCRIPT: 'Академическая справка',
   FINANCIAL_AID: 'Заявление на материальную помощь',
+  PGAS: 'Повышенная стипендия (ПГАС)',
   RETAKE: 'Заявление на пересдачу',
+  DORMITORY_PASS: 'Пропуск в общежитие',
 };
 
 export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
@@ -147,3 +150,26 @@ export const REQUEST_STATUS_TONE: Record<RequestStatus, BadgeTone> = {
   APPROVED: 'success',
   REJECTED: 'danger',
 };
+
+const timeFmt = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
+export const fmtTime = (iso?: string | null) => (valid(iso) ? timeFmt.format(valid(iso)!) : '');
+
+/** Для списка диалогов: время сегодня, «вчера», иначе дата. */
+export function fmtChatStamp(iso?: string | null, now = new Date()): string {
+  const d = valid(iso);
+  if (!d) return '';
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86_400_000);
+  if (diff === 0) return timeFmt.format(d);
+  if (diff === 1) return 'вчера';
+  return dateShortFmt.format(d).slice(0, 5);
+}
+
+/** «2026-11-22» → «22 ноября», без сдвига часового пояса. */
+export function fmtYmd(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return ymd;
+  return dateFmt.format(new Date(y, m - 1, d));
+}
+
+export const fmtHours = (h: number) => h.toLocaleString('ru-RU', { maximumFractionDigits: 1 });

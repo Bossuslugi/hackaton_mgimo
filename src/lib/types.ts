@@ -3,7 +3,7 @@
  * поэтому компоненты не зависят от точных имён полей API.
  */
 
-export type Role = 'STUDENT' | 'ADMIN';
+export type Role = 'STUDENT' | 'ADMIN' | 'TEACHER';
 
 export interface User {
   id: string;
@@ -20,6 +20,7 @@ export interface User {
   enrolledAt?: string;
   validUntil?: string;
   position?: string;
+  department?: string;
 }
 
 export type LessonType = 'LECTURE' | 'SEMINAR' | 'LAB' | 'EXAM' | 'OTHER';
@@ -39,6 +40,8 @@ export interface Lesson {
   startTime: string; // HH:MM
   endTime: string; // HH:MM
   note?: string;
+  group?: string;
+  building?: string;
 }
 
 export type AssignmentStatus = 'ACTIVE' | 'SUBMITTED' | 'GRADED' | 'OVERDUE';
@@ -54,6 +57,17 @@ export interface Assignment {
   submittedAt?: string;
   submissionLink?: string;
   score?: number | null;
+  // V2 · онлайн-ДЗ
+  group?: string;
+  authorName?: string;
+  taskPrompt: string;
+  starterTemplate?: string | null;
+  solutionText?: string | null;
+  studentComment?: string | null;
+  gradeAwarded?: number | null;
+  teacherFeedback?: string | null;
+  material?: { id: string; title: string; category: MaterialCategory } | null;
+  student?: { id: string; fullName: string; group?: string };
 }
 
 export type MaterialCategory = 'NOTES' | 'CHEATSHEET' | 'TICKETS' | 'LAB_TEMPLATE';
@@ -83,7 +97,14 @@ export interface SubjectGrade {
   hasDebt?: boolean;
 }
 
-export type RequestType = 'STUDY_CERTIFICATE' | 'MILITARY_CERTIFICATE' | 'FINANCIAL_AID' | 'RETAKE';
+export type RequestType =
+  | 'STUDY_CERTIFICATE'
+  | 'MILITARY_CERTIFICATE'
+  | 'ACADEMIC_TRANSCRIPT'
+  | 'FINANCIAL_AID'
+  | 'PGAS'
+  | 'RETAKE'
+  | 'DORMITORY_PASS';
 export type RequestStatus = 'CREATED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface RequestStudent {
@@ -105,6 +126,7 @@ export interface StudentRequest {
   signedAt?: string | null;
   signedBy?: string | null;
   student?: RequestStudent;
+  payload?: Record<string, unknown> | null;
 }
 
 export type AnnouncementType = 'URGENT' | 'ROOM_CHANGE' | 'INFO';
@@ -146,4 +168,102 @@ export interface CopilotContext {
 export interface ChatReply {
   reply: string;
   suggestions: string[];
+}
+
+// ───────────────────────── V2 · мессенджер
+
+export interface Contact {
+  id: string;
+  fullName: string;
+  role: Role;
+  group?: string;
+  department?: string;
+  position?: string;
+  lastMessage?: Message | null;
+  unreadCount: number;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  isRead: boolean;
+  mine: boolean;
+  createdAt: string;
+  /** клиентский статус оптимистичной отправки */
+  pending?: boolean;
+  failed?: boolean;
+}
+
+// ───────────────────────── V2 · бронирования
+
+export interface RoomSlot {
+  timeSlot: string;
+  available: boolean;
+  taken: boolean;
+}
+
+export interface Room {
+  roomName: string;
+  building: string;
+  capacity: number;
+  equipment: string[];
+  description?: string;
+  slots: RoomSlot[];
+}
+
+export interface Booking {
+  id?: string;
+  roomName: string;
+  building: string;
+  date: string; // YYYY-MM-DD
+  timeSlot: string;
+  participantsCount: number;
+  status: 'CONFIRMED' | 'CANCELLED';
+  isMine: boolean;
+  purpose?: string;
+  createdAt?: string;
+}
+
+export interface BookingsData {
+  date: string;
+  today: string;
+  timeSlots: string[];
+  myBookings: Booking[];
+  allBookingsToday: Booking[];
+  rooms: Room[];
+}
+
+// ───────────────────────── V2 · расписание с поиском
+
+export interface ScheduleSearch {
+  lessons: Lesson[];
+  availableGroups: string[];
+  availableRooms: string[];
+}
+
+// ───────────────────────── V2 · статистика
+
+export interface StatsData {
+  role: Role;
+  campusHoursWeek: number;
+  campusHoursSemester: number;
+  classHoursWeek: number;
+  attendancePercent: number | null;
+  avgBrs: number | null;
+  rankInGroup: number | null;
+  groupSize: number | null;
+  weeklyActivity: { day: string; dayOfWeek: number; campusHours: number; studyHours: number }[];
+  timeBreakdown: { category: string; hours: number; percent: number }[];
+}
+
+// ───────────────────────── V2 · кабинет преподавателя
+
+export interface TeacherCabinet {
+  assignments: Assignment[];
+  summary: { total: number; TODO: number; SUBMITTED: number; GRADED: number; OVERDUE: number };
+  toReview: number;
+  groups: string[];
+  subjects: string[];
 }

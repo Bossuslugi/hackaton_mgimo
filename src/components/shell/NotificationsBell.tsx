@@ -56,24 +56,24 @@ export function NotificationsBell() {
         onClick={() => setOpen((v) => !v)}
         aria-label={unread ? `Уведомления: ${items?.length} новых` : 'Уведомления'}
         aria-expanded={open}
-        className="relative inline-flex size-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 lg:size-10"
+        className="relative inline-flex size-11 items-center justify-center rounded-lg text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-zinc-50 lg:size-10"
       >
         <Bell size={20} strokeWidth={ICON_STROKE} />
         {unread && (
-          <span className="absolute right-2.5 top-2.5 size-2 rounded-full border-2 border-white bg-red-600" aria-hidden />
+          <span className="absolute right-2.5 top-2.5 size-2 rounded-full border-2 border-white dark:border-zinc-900 bg-red-600" aria-hidden />
         )}
       </button>
 
       {open && (
         <div
           className={cn(
-            'fixed inset-x-2 top-[3.75rem] z-50 rounded-xl border border-slate-200 bg-white shadow-sm',
+            'fixed inset-x-2 top-[3.75rem] z-50 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] shadow-sm',
             'lg:absolute lg:inset-x-auto lg:right-0 lg:top-12 lg:w-96',
           )}
         >
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <p className="text-sm font-medium text-slate-900">Уведомления деканата</p>
-            {items && items.length > 0 && <span className="text-xs text-slate-500 tabular-nums">{items.length}</span>}
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 px-4 py-3">
+            <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">Уведомления деканата</p>
+            {items && items.length > 0 && <span className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">{items.length}</span>}
           </div>
           <div className="max-h-[60dvh] overflow-y-auto">
             {items === null ? (
@@ -84,11 +84,11 @@ export function NotificationsBell() {
               </div>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center px-6 py-8 text-center">
-                <BellOff size={20} strokeWidth={ICON_STROKE} className="text-slate-400" />
-                <p className="mt-2 text-sm text-slate-500">Новых объявлений нет</p>
+                <BellOff size={20} strokeWidth={ICON_STROKE} className="text-slate-400 dark:text-zinc-500" />
+                <p className="mt-2 text-sm text-slate-500 dark:text-zinc-400">Новых объявлений нет</p>
               </div>
             ) : (
-              <ul className="divide-y divide-slate-200">
+              <ul className="divide-y divide-slate-200 dark:divide-zinc-800">
                 {items.map((a) => {
                   const Icon = ICON[a.type];
                   return (
@@ -98,13 +98,13 @@ export function NotificationsBell() {
                         strokeWidth={ICON_STROKE}
                         className={cn(
                           'mt-0.5 shrink-0',
-                          a.type === 'URGENT' ? 'text-red-600' : a.type === 'ROOM_CHANGE' ? 'text-amber-600' : 'text-slate-500',
+                          a.type === 'URGENT' ? 'text-red-600 dark:text-red-400' : a.type === 'ROOM_CHANGE' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-zinc-400',
                         )}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-900">{a.title}</p>
-                        <p className="mt-0.5 text-sm text-slate-600 break-words">{a.body}</p>
-                        <p className="mt-1 text-xs text-slate-400 tabular-nums">{fmtDateTime(a.createdAt)}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">{a.title}</p>
+                        <p className="mt-0.5 text-sm text-slate-600 dark:text-zinc-400 break-words">{a.body}</p>
+                        <p className="mt-1 text-xs text-slate-400 dark:text-zinc-500 tabular-nums">{fmtDateTime(a.createdAt)}</p>
                       </div>
                     </li>
                   );

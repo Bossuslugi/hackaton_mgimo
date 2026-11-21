@@ -9,6 +9,7 @@ import type { User } from '@/lib/types';
 interface SessionApi {
   user: User;
   isAdmin: boolean;
+  isTeacher: boolean;
   logout: () => Promise<void>;
 }
 
@@ -50,7 +51,7 @@ export function SessionProvider({ children, fallback }: { children: ReactNode; f
   }, [router]);
 
   if (!user) return <>{fallback}</>;
-  return <Ctx.Provider value={{ user, isAdmin: user.role === 'ADMIN', logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, isAdmin: user.role === 'ADMIN', isTeacher: user.role === 'TEACHER', logout }}>{children}</Ctx.Provider>;
 }
 
 export function useSession(): SessionApi {

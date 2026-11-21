@@ -22,6 +22,7 @@ import { useCopilot } from '@/components/copilot/CopilotProvider';
 import { CertificateModal } from '@/components/requests/CertificateModal';
 import { RequestStepper } from '@/components/requests/RequestStepper';
 import { useSession } from '@/components/shell/SessionProvider';
+import { StatsWidget } from '@/components/stats/StatsWidget';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader } from '@/components/ui/Card';
@@ -52,7 +53,7 @@ import { ICON_STROKE } from '@/lib/ui';
 import { useApi } from '@/lib/use-api';
 
 const linkCls =
-  'inline-flex min-h-11 items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 sm:min-h-0';
+  'inline-flex min-h-11 items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-400 sm:min-h-0';
 
 export function StudentDashboard() {
   const { user } = useSession();
@@ -88,6 +89,7 @@ export function StudentDashboard() {
             <DeadlinesCard items={hot} className="sm:col-span-2 lg:col-span-3 lg:row-span-2" />
             <RequestCard request={data.activeRequest} onOpen={setCert} className="lg:col-span-3" />
             <CopilotCard className="lg:col-span-3" />
+            <StatsWidget className="sm:col-span-2 lg:col-span-6" />
           </div>
         </div>
       ) : null}
@@ -100,7 +102,7 @@ export function StudentDashboard() {
 function DashboardSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:gap-4" aria-busy="true">
-      <div className="rounded-xl border border-slate-200 bg-white p-5 sm:col-span-2 lg:col-span-4">
+      <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5 sm:col-span-2 lg:col-span-4">
         <Skeleton className="h-3 w-28" />
         <Skeleton className="mt-5 h-8 w-40" />
         <Skeleton className="mt-3 h-5 w-2/3" />
@@ -129,18 +131,18 @@ function Announcements({ items }: { items: Announcement[] }) {
             key={a.id}
             className={cn(
               'flex gap-3 rounded-xl border p-3.5 sm:p-4',
-              urgent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50',
+              urgent ? 'border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/60' : 'border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/60',
             )}
             role="status"
           >
             <Icon
               size={18}
               strokeWidth={ICON_STROKE}
-              className={cn('mt-0.5 shrink-0', urgent ? 'text-red-700' : 'text-amber-700')}
+              className={cn('mt-0.5 shrink-0', urgent ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300')}
             />
             <div className="min-w-0">
-              <p className={cn('text-sm font-medium', urgent ? 'text-red-800' : 'text-amber-800')}>{a.title}</p>
-              <p className={cn('mt-0.5 text-sm break-words', urgent ? 'text-red-700' : 'text-amber-700')}>{a.body}</p>
+              <p className={cn('text-sm font-medium', urgent ? 'text-red-800 dark:text-red-200' : 'text-amber-800 dark:text-amber-200')}>{a.title}</p>
+              <p className={cn('mt-0.5 text-sm break-words', urgent ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300')}>{a.body}</p>
             </div>
           </div>
         );
@@ -156,8 +158,8 @@ function NextLessonCard({ lesson, className }: { lesson: Lesson | null; classNam
       <Card className={cn('flex flex-col p-4 sm:p-5', className)}>
         <CardHeader title="Ближайшая пара" icon={<CalendarDays size={14} strokeWidth={ICON_STROKE} />} />
         <div className="flex flex-1 flex-col items-start justify-center py-6">
-          <p className="text-base font-medium text-slate-900">На сегодня занятий больше нет</p>
-          <p className="mt-1 text-sm text-slate-500">Хорошее время, чтобы закрыть дедлайны.</p>
+          <p className="text-base font-medium text-slate-900 dark:text-zinc-50">На сегодня занятий больше нет</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">Хорошее время, чтобы закрыть дедлайны.</p>
         </div>
         <Link href="/schedule" className={linkCls}>
           Расписание на неделю <ArrowRight size={14} strokeWidth={ICON_STROKE} />
@@ -189,33 +191,33 @@ function NextLessonCard({ lesson, className }: { lesson: Lesson | null; classNam
       />
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
         <div className="shrink-0">
-          <p className="text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">{lesson.startTime}</p>
-          <p className="mt-0.5 text-sm text-slate-500 tabular-nums">до {lesson.endTime}</p>
+          <p className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50 tabular-nums">{lesson.startTime}</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400 tabular-nums">до {lesson.endTime}</p>
         </div>
-        <div className="min-w-0 flex-1 sm:border-l sm:border-slate-200 sm:pl-6">
+        <div className="min-w-0 flex-1 sm:border-l sm:border-slate-200 dark:sm:border-zinc-800 sm:pl-6">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="neutral">{LESSON_TYPE_LABEL[lesson.type]}</Badge>
             {lesson.isRescheduled && <Badge tone="warning">Перенос</Badge>}
           </div>
-          <p className="mt-2 text-lg font-semibold leading-snug text-slate-900 break-words">{lesson.subject}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600">
+          <p className="mt-2 text-lg font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{lesson.subject}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600 dark:text-zinc-400">
             <span className="inline-flex items-center gap-1.5">
-              <MapPin size={14} strokeWidth={ICON_STROKE} className="text-slate-400" />
+              <MapPin size={14} strokeWidth={ICON_STROKE} className="text-slate-400 dark:text-zinc-500" />
               {lesson.isRescheduled && lesson.oldRoom && (
-                <s className="text-slate-400 tabular-nums">{lesson.oldRoom}</s>
+                <s className="text-slate-400 dark:text-zinc-500 tabular-nums">{lesson.oldRoom}</s>
               )}
-              <span className={cn('tabular-nums', lesson.isRescheduled && 'font-medium text-amber-700')}>
+              <span className={cn('tabular-nums', lesson.isRescheduled && 'font-medium text-amber-700 dark:text-amber-300')}>
                 {lesson.room}
               </span>
             </span>
             {lesson.teacher && (
               <span className="inline-flex min-w-0 items-center gap-1.5">
-                <UserRound size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400" />
+                <UserRound size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400 dark:text-zinc-500" />
                 <span className="truncate">{lesson.teacher}</span>
               </span>
             )}
           </div>
-          {lesson.note && <p className="mt-2 text-xs text-amber-700">{lesson.note}</p>}
+          {lesson.note && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{lesson.note}</p>}
         </div>
       </div>
       <div className="mt-auto pt-3">
@@ -234,13 +236,13 @@ function AverageCard({ value, className }: { value: number | null; className?: s
     <Card className={cn('flex flex-col p-4 sm:p-5', className)}>
       <CardHeader title="Средний балл БРС" icon={<Gauge size={14} strokeWidth={ICON_STROKE} />} />
       <div className="mt-4 flex items-baseline gap-1.5">
-        <span className="text-4xl font-semibold tracking-tight text-slate-900 tabular-nums">
+        <span className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50 tabular-nums">
           {value === null ? '—' : v.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}
         </span>
-        <span className="text-sm text-slate-400 tabular-nums">/ 100</span>
+        <span className="text-sm text-slate-400 dark:text-zinc-500 tabular-nums">/ 100</span>
       </div>
       <Progress value={v} marker={STIPEND_THRESHOLD} tone={ok ? 'success' : 'warning'} className="mt-4" />
-      <div className="mt-1.5 flex justify-between text-[11px] text-slate-400 tabular-nums">
+      <div className="mt-1.5 flex justify-between text-[11px] text-slate-400 dark:text-zinc-500 tabular-nums">
         <span>0</span>
         <span>{STIPEND_THRESHOLD} — повышенная</span>
       </div>
@@ -271,29 +273,29 @@ function DeadlinesCard({ items, className }: { items: Assignment[]; className?: 
       <CardHeader
         title="Горящие дедлайны"
         icon={<Flame size={14} strokeWidth={ICON_STROKE} />}
-        action={items.length > 0 && <span className="text-xs text-slate-500 tabular-nums">{items.length}</span>}
+        action={items.length > 0 && <span className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">{items.length}</span>}
       />
       {sorted.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-          <CircleCheck size={20} strokeWidth={ICON_STROKE} className="text-emerald-600" />
-          <p className="mt-2 text-sm font-medium text-slate-900">Все задания сданы</p>
-          <p className="mt-0.5 text-sm text-slate-500">Новые дедлайны появятся здесь.</p>
+          <CircleCheck size={20} strokeWidth={ICON_STROKE} className="text-emerald-600 dark:text-emerald-400" />
+          <p className="mt-2 text-sm font-medium text-slate-900 dark:text-zinc-50">Все задания сданы</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Новые дедлайны появятся здесь.</p>
         </div>
       ) : (
-        <ul className="-mx-1 mt-3 divide-y divide-slate-200">
+        <ul className="-mx-1 mt-3 divide-y divide-slate-200 dark:divide-zinc-800">
           {sorted.map((a) => (
             <li key={a.id}>
               <Link
                 href="/study"
-                className="flex items-start gap-3 rounded-lg px-1 py-3 transition-colors hover:bg-slate-50"
+                className="flex items-start gap-3 rounded-lg px-1 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-900"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs text-slate-500">{a.subject}</p>
-                  <p className="mt-0.5 text-sm font-medium leading-snug text-slate-900 break-words">{a.title}</p>
+                  <p className="truncate text-xs text-slate-500 dark:text-zinc-400">{a.subject}</p>
+                  <p className="mt-0.5 text-sm font-medium leading-snug text-slate-900 dark:text-zinc-50 break-words">{a.title}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <Countdown deadline={a.deadline} />
-                  {a.points > 0 && <span className="text-xs text-slate-500 tabular-nums">+{a.points} б.</span>}
+                  {a.points > 0 && <span className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">+{a.points} б.</span>}
                 </div>
               </Link>
             </li>
@@ -323,8 +325,8 @@ function RequestCard({
       <CardHeader title="Активная заявка" icon={<FileText size={14} strokeWidth={ICON_STROKE} />} />
       {!request ? (
         <div className="flex flex-1 flex-col items-start justify-center py-5">
-          <p className="text-sm font-medium text-slate-900">Активных заявок нет</p>
-          <p className="mt-0.5 text-sm text-slate-500">Справка об обучении — в один клик.</p>
+          <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">Активных заявок нет</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Справка об обучении — в один клик.</p>
           <Link href="/requests" className={cn(linkCls, 'mt-2')}>
             Заказать справку <ArrowRight size={14} strokeWidth={ICON_STROKE} />
           </Link>
@@ -332,7 +334,7 @@ function RequestCard({
       ) : (
         <>
           <div className="mt-3 flex items-start justify-between gap-3">
-            <p className="min-w-0 text-sm font-medium text-slate-900">{REQUEST_TYPE_LABEL[request.type]}</p>
+            <p className="min-w-0 text-sm font-medium text-slate-900 dark:text-zinc-50">{REQUEST_TYPE_LABEL[request.type]}</p>
             <Badge tone={REQUEST_STATUS_TONE[request.status]}>{REQUEST_STATUS_LABEL[request.status]}</Badge>
           </div>
           <div className="mt-4">
@@ -365,18 +367,18 @@ function CopilotCard({ className }: { className?: string }) {
   return (
     <Card className={cn('flex flex-col p-4 sm:p-5', className)}>
       <CardHeader title="Орбита Copilot" icon={<Sparkles size={14} strokeWidth={ICON_STROKE} />} />
-      <p className="mt-3 text-sm text-slate-600">Тьютор по предметам и справочная деканата в одном окне.</p>
+      <p className="mt-3 text-sm text-slate-600 dark:text-zinc-400">Тьютор по предметам и справочная деканата в одном окне.</p>
       <ul className="mt-3 space-y-1.5">
         {prompts.map((p) => (
           <li key={p.text}>
             <button
               type="button"
               onClick={() => copilot.open({ mode: p.mode, prompt: p.text, context: null })}
-              className="flex min-h-11 w-full items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+              className="flex min-h-11 w-full items-center gap-2.5 rounded-lg border border-slate-200 dark:border-zinc-800 px-3 py-2 text-left text-sm text-slate-700 dark:text-zinc-300 transition-colors hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-900"
             >
-              <p.icon size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400" />
+              <p.icon size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400 dark:text-zinc-500" />
               <span className="min-w-0 flex-1">{p.text}</span>
-              <ArrowRight size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400" />
+              <ArrowRight size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400 dark:text-zinc-500" />
             </button>
           </li>
         ))}

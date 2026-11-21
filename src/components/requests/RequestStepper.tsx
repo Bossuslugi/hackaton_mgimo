@@ -33,7 +33,7 @@ export function RequestStepper({ request, compact }: { request: StudentRequest; 
               aria-hidden
               className={cn(
                 'absolute top-3 h-px',
-                s === 'upcoming' ? 'bg-slate-200' : s === 'rejected' ? 'bg-red-200' : 'bg-blue-600',
+                s === 'upcoming' ? 'bg-slate-200 dark:bg-zinc-700' : s === 'rejected' ? 'bg-red-200 dark:bg-red-800/60' : 'bg-blue-600 dark:bg-blue-500',
               )}
               style={{ left: 'calc(-50% + 16px)', right: 'calc(50% + 16px)' }}
             />
@@ -42,9 +42,9 @@ export function RequestStepper({ request, compact }: { request: StudentRequest; 
             <span
               className={cn(
                 'relative z-10 inline-flex size-6 items-center justify-center rounded-full border text-[11px] font-medium tabular-nums',
-                s === 'done' && 'border-blue-600 bg-blue-600 text-white',
-                s === 'current' && 'border-blue-600 bg-white text-blue-600',
-                s === 'upcoming' && 'border-slate-200 bg-white text-slate-400',
+                s === 'done' && 'border-blue-600 dark:border-blue-500 bg-blue-600 dark:bg-blue-500 text-white',
+                s === 'current' && 'border-blue-600 dark:border-blue-500 bg-white dark:bg-[#12141A] text-blue-600 dark:text-blue-400',
+                s === 'upcoming' && 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] text-slate-400 dark:text-zinc-500',
                 s === 'rejected' && 'border-red-600 bg-red-600 text-white',
               )}
               aria-current={s === 'current' ? 'step' : undefined}
@@ -60,7 +60,7 @@ export function RequestStepper({ request, compact }: { request: StudentRequest; 
             <span
               className={cn(
                 'mt-1.5 max-w-full px-0.5 text-xs leading-tight',
-                s === 'upcoming' ? 'text-slate-400' : s === 'rejected' ? 'font-medium text-red-700' : 'text-slate-900',
+                s === 'upcoming' ? 'text-slate-400 dark:text-zinc-500' : s === 'rejected' ? 'font-medium text-red-700 dark:text-red-300' : 'text-slate-900 dark:text-zinc-50',
                 s === 'current' && 'font-medium',
               )}
             >
@@ -68,7 +68,7 @@ export function RequestStepper({ request, compact }: { request: StudentRequest; 
               {i === 2 && request.status !== 'REJECTED' && <span className="hidden sm:inline"> / Готово</span>}
             </span>
             {!compact && dates[i] && s !== 'upcoming' && (
-              <span className="mt-0.5 text-[11px] text-slate-400 tabular-nums">{fmtDateTime(dates[i])}</span>
+              <span className="mt-0.5 text-[11px] text-slate-400 dark:text-zinc-500 tabular-nums">{fmtDateTime(dates[i])}</span>
             )}
           </div>
         </li>

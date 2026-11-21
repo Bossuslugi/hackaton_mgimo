@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { WriteTeacherButton } from '@/components/messages/WriteTeacherButton';
+import { StatsWidget } from '@/components/stats/StatsWidget';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Progress } from '@/components/ui/Progress';
 import { Segmented } from '@/components/ui/Segmented';
@@ -115,15 +117,15 @@ function Grades() {
               value={String(debts.length)}
               tone={debts.length ? 'danger' : 'success'}
             />
-            <Card className={cn('p-4', stipend ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50')}>
-              <div className={cn('flex items-center gap-2 text-xs', stipend ? 'text-emerald-700' : 'text-amber-700')}>
+            <Card className={cn('p-4', stipend ? 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/60' : 'border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/60')}>
+              <div className={cn('flex items-center gap-2 text-xs', stipend ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300')}>
                 <Award size={14} strokeWidth={ICON_STROKE} />
                 Повышенная стипендия
               </div>
-              <p className={cn('mt-1.5 text-sm font-semibold', stipend ? 'text-emerald-800' : 'text-amber-800')}>
+              <p className={cn('mt-1.5 text-sm font-semibold', stipend ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200')}>
                 {stipend ? (mode === 'sim' ? 'Сохранится' : 'Сохраняется') : 'Под угрозой'}
               </p>
-              <p className={cn('mt-0.5 text-xs leading-snug', stipend ? 'text-emerald-700' : 'text-amber-700')}>
+              <p className={cn('mt-0.5 text-xs leading-snug', stipend ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300')}>
                 {stipend
                   ? `Все дисциплины ≥ ${STIPEND_THRESHOLD}`
                   : `Ниже ${STIPEND_THRESHOLD}: ${below
@@ -135,10 +137,10 @@ function Grades() {
           </div>
 
           {mode === 'sim' && (
-            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex gap-3">
-                <Calculator size={18} strokeWidth={ICON_STROKE} className="mt-0.5 shrink-0 text-blue-700" />
-                <p className="text-sm text-blue-800">
+                <Calculator size={18} strokeWidth={ICON_STROKE} className="mt-0.5 shrink-0 text-blue-700 dark:text-blue-400" />
+                <p className="text-sm text-blue-800 dark:text-blue-300">
                   <b className="font-semibold">Симулятор БРС «Что если?».</b> Двигайте ползунки — сколько баллов вы ещё наберёте за оставшиеся работы. Итог и стипендия пересчитываются
                   сразу. Правило: повышенная стипендия при итоге <b className="tabular-nums">≥ {STIPEND_THRESHOLD}</b> по
                   каждой дисциплине.
@@ -190,6 +192,7 @@ function Grades() {
               ),
             )}
           </div>
+          {mode === 'current' && <StatsWidget className="mt-4 lg:mt-6" />}
         </>
       )}
     </>
@@ -212,18 +215,18 @@ function Stat({
   accent?: boolean;
 }) {
   return (
-    <Card className={cn('p-4', accent && 'border-blue-200')}>
-      <p className="truncate text-xs text-slate-500">{label}</p>
+    <Card className={cn('p-4', accent && 'border-blue-200 dark:border-blue-500/30')}>
+      <p className="truncate text-xs text-slate-500 dark:text-zinc-400">{label}</p>
       <p className="mt-1.5 flex items-baseline gap-1">
         <span
           className={cn(
             'text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl',
-            tone === 'danger' ? 'text-red-700' : accent ? 'text-blue-700' : 'text-slate-900',
+            tone === 'danger' ? 'text-red-700 dark:text-red-300' : accent ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-zinc-50',
           )}
         >
           {value}
         </span>
-        {suffix && <span className="text-xs text-slate-400 tabular-nums">{suffix}</span>}
+        {suffix && <span className="text-xs text-slate-400 dark:text-zinc-500 tabular-nums">{suffix}</span>}
       </p>
     </Card>
   );
@@ -242,13 +245,24 @@ function SubjectCard({ s }: { s: SubjectGrade }) {
     <Card className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-semibold leading-snug text-slate-900 break-words">{s.name}</h3>
-          {s.teacher && <p className="mt-0.5 truncate text-xs text-slate-500">{s.teacher}</p>}
+          <h3 className="text-[15px] font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{s.name}</h3>
+          {s.teacher && (
+            <div className="-my-1 flex min-w-0 items-center gap-1">
+              <p className="min-w-0 truncate text-xs text-slate-500 dark:text-zinc-400">{s.teacher}</p>
+              <WriteTeacherButton
+                teacherName={s.teacher}
+                iconOnly
+                label="Написать преподавателю"
+                draft={`Добрый день! Подскажите, пожалуйста, по дисциплине «${s.name}»: `}
+                className="-my-1 shrink-0 text-slate-400 dark:text-zinc-500"
+              />
+            </div>
+          )}
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-2xl font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
+          <p className="text-2xl font-semibold leading-none tracking-tight text-slate-900 dark:text-zinc-50 tabular-nums">
             {s.total}
-            <span className="ml-0.5 text-xs font-normal text-slate-400">/100</span>
+            <span className="ml-0.5 text-xs font-normal text-slate-400 dark:text-zinc-500">/100</span>
           </p>
         </div>
       </div>
@@ -269,18 +283,18 @@ function SubjectCard({ s }: { s: SubjectGrade }) {
         {PARTS.map((p) => (
           <div key={p.key}>
             <div className="flex items-baseline justify-between text-sm">
-              <dt className="text-slate-600">{p.label}</dt>
-              <dd className="tabular-nums text-slate-900">
+              <dt className="text-slate-600 dark:text-zinc-400">{p.label}</dt>
+              <dd className="tabular-nums text-slate-900 dark:text-zinc-50">
                 {p.val(s)}
-                <span className="text-slate-400"> / {p.max(s)}</span>
+                <span className="text-slate-400 dark:text-zinc-500"> / {p.max(s)}</span>
               </dd>
             </div>
             <Progress value={p.val(s)} max={p.max(s)} tone="brand" className="mt-1.5" />
           </div>
         ))}
-        <div className="flex items-baseline justify-between border-t border-slate-200 pt-3 text-sm">
-          <dt className="font-medium text-slate-900">Итог</dt>
-          <dd className="font-semibold tabular-nums text-slate-900">{s.total} / 100</dd>
+        <div className="flex items-baseline justify-between border-t border-slate-200 dark:border-zinc-800 pt-3 text-sm">
+          <dt className="font-medium text-slate-900 dark:text-zinc-50">Итог</dt>
+          <dd className="font-semibold tabular-nums text-slate-900 dark:text-zinc-50">{s.total} / 100</dd>
         </div>
       </dl>
     </Card>
@@ -297,17 +311,17 @@ function SimCard({ s, d, onChange }: { s: SubjectGrade; d: SimDelta; onChange: (
   const maxPossible = projectedTotal(s, h);
 
   return (
-    <Card className={cn('p-4 sm:p-5', ok ? 'border-emerald-200' : total < PASS_THRESHOLD ? 'border-red-200' : '')}>
+    <Card className={cn('p-4 sm:p-5', ok ? 'border-emerald-200 dark:border-emerald-800/60' : total < PASS_THRESHOLD ? 'border-red-200 dark:border-red-800/60' : '')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-semibold leading-snug text-slate-900 break-words">{s.name}</h3>
-          <p className="mt-0.5 text-xs text-slate-500 tabular-nums">
+          <h3 className="text-[15px] font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{s.name}</h3>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400 tabular-nums">
             Сейчас {s.total} · максимум возможный {maxPossible}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-2xl font-semibold leading-none tracking-tight text-slate-900 tabular-nums">{total}</p>
-          <p className={cn('mt-1 text-xs tabular-nums', diff > 0 ? 'text-emerald-700' : 'text-slate-400')}>
+          <p className="text-2xl font-semibold leading-none tracking-tight text-slate-900 dark:text-zinc-50 tabular-nums">{total}</p>
+          <p className={cn('mt-1 text-xs tabular-nums', diff > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400 dark:text-zinc-500')}>
             {diff > 0 ? `+${diff}` : '±0'}
           </p>
         </div>
@@ -318,14 +332,14 @@ function SimCard({ s, d, onChange }: { s: SubjectGrade; d: SimDelta; onChange: (
         <Badge tone={before.tone}>{before.label}</Badge>
         {after.label !== before.label && (
           <>
-            <span className="text-slate-400">→</span>
+            <span className="text-slate-400 dark:text-zinc-500">→</span>
             <Badge tone={after.tone}>{after.label}</Badge>
           </>
         )}
         {ok ? (
           <Badge tone="success">≥ 85 · стипендия</Badge>
         ) : (
-          <span className="text-slate-500 tabular-nums">
+          <span className="text-slate-500 dark:text-zinc-400 tabular-nums">
             до 85: {maxPossible >= STIPEND_THRESHOLD ? `ещё +${STIPEND_THRESHOLD - total}` : 'недостижимо'}
           </span>
         )}
@@ -340,13 +354,13 @@ function SimCard({ s, d, onChange }: { s: SubjectGrade; d: SimDelta; onChange: (
           return (
             <div key={p.key}>
               <div className="flex items-baseline justify-between text-sm">
-                <label htmlFor={id} className="text-slate-600">
+                <label htmlFor={id} className="text-slate-600 dark:text-zinc-400">
                   {p.label}
                 </label>
-                <span className="tabular-nums text-slate-900">
+                <span className="tabular-nums text-slate-900 dark:text-zinc-50">
                   {p.val(s) + v}
-                  <span className="text-slate-400"> / {p.max(s)}</span>
-                  {v > 0 && <span className="ml-1.5 text-emerald-700">+{v}</span>}
+                  <span className="text-slate-400 dark:text-zinc-500"> / {p.max(s)}</span>
+                  {v > 0 && <span className="ml-1.5 text-emerald-700 dark:text-emerald-300">+{v}</span>}
                 </span>
               </div>
               <input
