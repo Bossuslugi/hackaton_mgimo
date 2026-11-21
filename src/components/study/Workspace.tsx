@@ -237,7 +237,7 @@ function WorkspaceInner({
             onClick={() => void submit()}
             loading={busy}
             icon={<Send size={16} strokeWidth={ICON_STROKE} />}
-            className="hidden lg:inline-flex"
+            className="max-lg:hidden"
           >
             Отправить решение преподавателю
           </Button>

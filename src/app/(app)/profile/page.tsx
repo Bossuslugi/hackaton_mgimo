@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut, Play, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
+import { Camera, LogOut, Play, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { LogoMark } from '@/components/brand/Logo';
 import { useSession } from '@/components/shell/SessionProvider';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +10,8 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { QRCode } from '@/components/ui/QRCode';
 import { ThemeSwitch } from '@/components/ui/ThemeToggle';
+import { UserAvatar } from '@/components/ui/UserAvatar';
+import { AvatarEditor, AvatarSheet } from '@/components/profile/AvatarPicker';
 import { apiRaw, type RawResponse } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { fmtDate, fmtDateShort, initials } from '@/lib/format';
@@ -21,7 +23,8 @@ import { useApi } from '@/lib/use-api';
 export default function ProfilePage() {
   const session = useSession();
   const { data } = useApi<User | null>('/api/auth/me', toUser);
-  const user = data ?? session.user;
+  // аватар меняется локально через patchUser — берём его из сессии, остальное из свежего /me
+  const user = data ? { ...data, avatarUrl: session.user.avatarUrl } : session.user;
   const [leaving, setLeaving] = useState(false);
 
   return (
@@ -77,14 +80,9 @@ function StudentCard({ user }: { user: User }) {
         </div>
         <Badge tone="success">Действителен</Badge>
       </div>
-      <div className="flex flex-col gap-5 p-4 sm:flex-row sm:p-5">
+      <div className="flex flex-col gap-5 p-4 sm:flex-row sm:p-5 lg:flex-col 2xl:flex-row">
         <div className="flex min-w-0 flex-1 gap-4">
-          <div
-            className="flex h-24 w-[72px] shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-800 text-xl font-semibold text-slate-500 dark:text-zinc-400"
-            aria-hidden
-          >
-            {initials(user.fullName)}
-          </div>
+          <CardPhoto user={user} />
           <div className="min-w-0">
             <p className="text-base font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{user.fullName}</p>
             <dl className="mt-2 space-y-1 text-sm">
@@ -94,7 +92,7 @@ function StudentCard({ user }: { user: User }) {
             </dl>
           </div>
         </div>
-        <div className="flex items-center gap-3 border-t border-slate-200 dark:border-zinc-800 pt-4 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
+        <div className="flex items-center gap-3 border-t border-slate-200 dark:border-zinc-800 pt-4 sm:flex-col sm:items-end sm:border-0 sm:pt-0 lg:flex-row lg:items-center lg:border-t lg:pt-4 2xl:flex-col 2xl:items-end 2xl:border-0 2xl:pt-0">
           <QRCode value={qr} size={104} title="QR-код студенческого билета" className="rounded-md border border-slate-200 dark:border-zinc-800" />
           <p className="text-xs leading-snug text-slate-500 dark:text-zinc-400 sm:text-right">
             Покажите на входе
@@ -110,18 +108,36 @@ function StaffCard({ user }: { user: User }) {
   return (
     <Card className="p-4 sm:p-5">
       <div className="flex items-center gap-4">
-        <span className="inline-flex size-14 items-center justify-center rounded-full border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-800 text-lg font-semibold text-slate-600 dark:text-zinc-400">
-          {initials(user.fullName)}
-        </span>
+        <AvatarEditor />
         <div className="min-w-0">
           <p className="text-base font-semibold text-slate-900 dark:text-zinc-50 break-words">{user.fullName}</p>
           <p className="text-sm text-slate-500 dark:text-zinc-400">{user.position ?? 'Сотрудник деканата'}</p>
           <Badge tone="brand" className="mt-1.5">
-            Роль: ADMIN
+            Роль: {user.role}
           </Badge>
         </div>
       </div>
     </Card>
+  );
+}
+
+/** Фото в студенческом билете 3×4 с кнопкой «Изменить фото». */
+function CardPhoto({ user }: { user: User }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative shrink-0">
+      <UserAvatar name={user.fullName} src={user.avatarUrl} shape="card" className="h-24 w-[72px] text-xl font-semibold" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Изменить фото"
+        title="Изменить фото"
+        className="absolute -bottom-2 -right-2 inline-flex size-9 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white transition-transform active:scale-95 dark:border-[#12141A] dark:bg-blue-500"
+      >
+        <Camera size={15} strokeWidth={ICON_STROKE} />
+      </button>
+      <AvatarSheet open={open} onClose={() => setOpen(false)} />
+    </div>
   );
 }
 

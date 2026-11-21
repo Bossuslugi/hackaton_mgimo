@@ -1,11 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CalendarDays, CalendarOff, DoorOpen, MapPin, Search, UserRound } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, CalendarOff, CalendarPlus, DoorOpen, MapPin, Search, UserRound } from 'lucide-react';
 import { Bookings } from '@/components/schedule/Bookings';
 import { ScheduleSearch } from '@/components/schedule/ScheduleSearch';
 import { StudentOnly } from '@/components/shell/StudentOnly';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
+import { buildIcs, downloadIcs } from '@/lib/ics';
 import { Card } from '@/components/ui/Card';
 import { useNow } from '@/components/ui/Countdown';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -81,6 +84,22 @@ function ScheduleHub() {
 
 function Schedule() {
   const { data, error, loading, reload } = useApi<Lesson[]>('/api/schedule', toLessons);
+  const toast = useToast();
+  const exportIcs = useCallback(() => {
+    if (!data?.length) return;
+    downloadIcs(buildIcs(data));
+    toast.success('Файл orbita-schedule.ics скачан', `${data.length} занятий текущей недели — откройте файл, чтобы добавить в календарь.`);
+  }, [data, toast]);
+  // переход из командной палитры: /schedule?export=ics
+  const autoExport = useRef(false);
+  useEffect(() => {
+    if (autoExport.current || !data?.length) return;
+    if (new URLSearchParams(window.location.search).get('export') === 'ics') {
+      autoExport.current = true;
+      exportIcs();
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [data, exportIcs]);
   const today = Math.min(isoWeekday(), 6);
   const isSunday = isoWeekday() === 7;
   const [view, setView] = useState<View>('today');
@@ -113,15 +132,28 @@ function Schedule() {
           ) : undefined
         }
         actions={
-          <Segmented<View>
-            ariaLabel="Период"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: 'today', label: 'Сегодня' },
-              { value: 'week', label: 'Неделя' },
-            ]}
-          />
+          <>
+            <Button
+              variant="secondary"
+              onClick={exportIcs}
+              disabled={!data?.length}
+              icon={<CalendarPlus size={16} strokeWidth={ICON_STROKE} />}
+              className="min-h-11 sm:min-h-10"
+              title="Импорт в Apple Calendar, Google Calendar, Яндекс Календарь"
+            >
+              <span className="sm:hidden">.ics</span>
+              <span className="hidden sm:inline">Экспорт в календарь (.ics)</span>
+            </Button>
+            <Segmented<View>
+              ariaLabel="Период"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'today', label: 'Сегодня' },
+                { value: 'week', label: 'Неделя' },
+              ]}
+            />
+          </>
         }
       />
 

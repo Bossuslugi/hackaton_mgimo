@@ -60,6 +60,7 @@ export function toContact(raw: unknown): Contact | null {
     group: optStr(pick(raw, 'groupName', 'group')),
     department: optStr(pick(raw, 'department')),
     position: optStr(pick(raw, 'position')),
+    avatarUrl: optStr(pick(raw, 'avatarUrl')) ?? null,
     lastMessage: raw.lastMessage ? toMessage(raw.lastMessage) : null,
     unreadCount: num(pick(raw, 'unreadCount'), 0),
   };
