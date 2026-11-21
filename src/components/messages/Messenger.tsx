@@ -14,10 +14,11 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Segmented } from '@/components/ui/Segmented';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Spinner } from '@/components/ui/Spinner';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError, get, post } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { fmtChatStamp, fmtDate, fmtTime, initials } from '@/lib/format';
+import { fmtChatStamp, fmtDate, fmtTime } from '@/lib/format';
 import { toContacts, toMessage, toThread, type ContactsData } from '@/lib/normalize-v2';
 import type { Contact, Message, Role } from '@/lib/types';
 import { ICON_STROKE } from '@/lib/ui';
@@ -44,7 +45,8 @@ const TEMPLATES_TEACHER = [
   'Консультация — в четверг в 15:20, ауд. 301.',
 ];
 
-const POLL_MS = 10_000;
+/** Фоновая синхронизация открытого диалога (V3: 4 с). */
+const POLL_MS = 4_000;
 
 /** Мессенджер: GET /api/messages, GET/POST /api/messages/[peerId]. */
 export function Messenger() {
@@ -189,20 +191,8 @@ export function Messenger() {
   );
 }
 
-function Avatar({ name, role }: { name: string; role: Role }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex size-10 shrink-0 items-center justify-center rounded-full border text-sm font-medium',
-        role === 'TEACHER'
-          ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400'
-          : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-300',
-      )}
-      aria-hidden
-    >
-      {initials(name)}
-    </span>
-  );
+function Avatar({ name, role, src }: { name: string; role: Role; src?: string | null }) {
+  return <UserAvatar name={name} src={src} size="md" tone={role === 'TEACHER' ? 'brand' : 'neutral'} />;
 }
 
 function subtitle(c: Contact): string {
@@ -223,7 +213,7 @@ function ContactRow({ c, active, myId, onClick }: { c: Contact; active: boolean;
         active ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-zinc-900',
       )}
     >
-      <Avatar name={c.fullName} role={c.role} />
+      <Avatar name={c.fullName} role={c.role} src={c.avatarUrl} />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className={cn('min-w-0 flex-1 truncate text-sm text-slate-900 dark:text-zinc-50', c.unreadCount > 0 ? 'font-semibold' : 'font-medium')}>
@@ -279,19 +269,28 @@ function Thread({
   const onReadRef = useRef(onRead);
   onReadRef.current = onRead;
 
+  const inFlight = useRef(false);
   const load = useCallback(
     async (silent = false) => {
+      if (inFlight.current) return; // опросы не накладываются друг на друга
+      inFlight.current = true;
       try {
         const t = toThread(await get(`/api/messages/${encodeURIComponent(peerId)}`));
         if (t.peer) setPeer(t.peer);
         setMessages((prev) => {
-          const pending = (prev ?? []).filter((m) => m.pending || m.failed);
+          // оптимистичные сообщения, которых ещё нет в ответе сервера
+          const serverMine = t.messages.filter((m) => m.mine);
+          const pending = (prev ?? []).filter(
+            (m) => m.pending && !serverMine.some((s) => s.content === m.content && +new Date(s.createdAt) >= +new Date(m.createdAt) - 5_000),
+          );
           return [...t.messages, ...pending];
         });
         setError(null);
         onReadRef.current(peerId);
       } catch (e) {
         if (!silent) setError(e instanceof ApiError ? e : new ApiError(0, 'Не удалось загрузить переписку', null));
+      } finally {
+        inFlight.current = false;
       }
     },
     [peerId],
@@ -318,6 +317,7 @@ function Thread({
     }
   }, [initialDraft]);
 
+  /** Optimistic UI: сообщение появляется сразу со статусом «Отправка…», при ошибке — откат. */
   async function send(content: string, retryId?: string) {
     const body = content.trim();
     if (!body) return;
@@ -336,8 +336,10 @@ function Thread({
         onSent(m);
       }
     } catch (e) {
-      setMessages((xs) => (xs ?? []).map((x) => (x.id === tempId ? { ...x, pending: false, failed: true } : x)));
-      toast.error('Сообщение не отправлено', e instanceof ApiError ? e.message : undefined);
+      // откат: убираем пузырь и возвращаем текст в поле ввода, чтобы ничего не потерялось
+      setMessages((xs) => (xs ?? []).filter((x) => x.id !== tempId));
+      setText((t) => (t.trim() ? t : body));
+      toast.error('Сообщение не отправлено', e instanceof ApiError ? e.message : 'Текст вернули в поле ввода — попробуйте ещё раз.');
     }
   }
 
@@ -372,7 +374,7 @@ function Thread({
         </button>
         {peer ? (
           <>
-            <Avatar name={peer.fullName} role={peer.role} />
+            <Avatar name={peer.fullName} role={peer.role} src={peer.avatarUrl} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-zinc-50">{peer.fullName}</p>
               <p className="truncate text-xs text-slate-500 tabular-nums dark:text-zinc-400">

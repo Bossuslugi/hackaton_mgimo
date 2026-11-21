@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Building2,
   CalendarDays,
   ClipboardCheck,
   FileText,
@@ -45,6 +46,9 @@ export const ADMIN_NAV: NavItem[] = [
 
 /** Раздел «Сообщения» — только в сайдбаре (на мобильном — иконка в шапке). */
 export const MESSAGES_NAV: NavItem = { href: '/messages', label: 'Сообщения', short: 'Сообщения', icon: MessagesSquare };
+
+/** «Кампус и сервисы» — сайдбар на desktop, иконка в шапке на мобильном. */
+export const CAMPUS_NAV: NavItem = { href: '/campus', label: 'Кампус и сервисы', short: 'Кампус', icon: Building2 };
 
 export const navFor = (role: Role) => (role === 'ADMIN' ? ADMIN_NAV : role === 'TEACHER' ? TEACHER_NAV : STUDENT_NAV);
 

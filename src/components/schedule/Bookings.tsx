@@ -284,6 +284,7 @@ function BookingSheet({
   const [people, setPeople] = useState(2);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
   const cap = draft?.room.capacity || 50;
 
   useEffect(() => {
@@ -321,9 +322,14 @@ function BookingSheet({
         isMine: true,
         purpose: purpose.trim(),
       };
-      toast.success('Помещение забронировано', `${b.roomName} · ${fmtYmd(b.date)}, ${b.timeSlot}`);
-      setPurpose('');
-      onBooked(b);
+      // микро-анимация успеха на кнопке, затем закрытие шторки
+      setDone(true);
+      window.setTimeout(() => {
+        setDone(false);
+        setPurpose('');
+        onBooked(b);
+        toast.success('Помещение забронировано', `${b.roomName} · ${fmtYmd(b.date)}, ${b.timeSlot}`);
+      }, 450);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Не удалось забронировать помещение.';
       setError(msg);
@@ -344,8 +350,13 @@ function BookingSheet({
           <Button variant="secondary" onClick={onClose} className="min-h-11 sm:min-h-0">
             Отмена
           </Button>
-          <Button onClick={() => void submit()} loading={busy} icon={<Check size={16} strokeWidth={ICON_STROKE} />} className="min-h-11 sm:min-h-0">
-            Забронировать
+          <Button
+            onClick={() => !done && void submit()}
+            loading={busy}
+            icon={<Check size={16} strokeWidth={ICON_STROKE} className={done ? 'animate-[check-in_200ms_ease-out]' : undefined} />}
+            className={cn('min-h-11 sm:min-h-0', done && 'animate-[pop_300ms_ease-out] border-emerald-600 bg-emerald-600 hover:border-emerald-600 hover:bg-emerald-600 dark:border-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-600')}
+          >
+            {done ? 'Забронировано' : 'Забронировать'}
           </Button>
         </>
       }

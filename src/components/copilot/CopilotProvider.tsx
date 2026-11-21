@@ -115,17 +115,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
 
   const close = useCallback(() => setOpen(false), []);
 
-  // ⌘K / Ctrl+K — открыть Copilot из любого раздела
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setOpen((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // ⌘K / Ctrl+K теперь открывает командную палитру (CommandPalette), Copilot — из палитры
 
   const api = useMemo<CopilotApi>(
     () => ({

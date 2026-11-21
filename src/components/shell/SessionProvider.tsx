@@ -10,6 +10,8 @@ interface SessionApi {
   user: User;
   isAdmin: boolean;
   isTeacher: boolean;
+  /** Локально обновить пользователя (например, после смены аватара) */
+  patchUser: (patch: Partial<User>) => void;
   logout: () => Promise<void>;
 }
 
@@ -50,8 +52,11 @@ export function SessionProvider({ children, fallback }: { children: ReactNode; f
     }
   }, [router]);
 
+  const patchUser = useCallback((patch: Partial<User>) => setUser((u) => (u ? { ...u, ...patch } : u)), []);
+
   if (!user) return <>{fallback}</>;
-  return <Ctx.Provider value={{ user, isAdmin: user.role === 'ADMIN', isTeacher: user.role === 'TEACHER', logout }}>{children}</Ctx.Provider>;
+
+  return <Ctx.Provider value={{ user, isAdmin: user.role === 'ADMIN', isTeacher: user.role === 'TEACHER', logout, patchUser }}>{children}</Ctx.Provider>;
 }
 
 export function useSession(): SessionApi {

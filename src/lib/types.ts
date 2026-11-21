@@ -21,6 +21,7 @@ export interface User {
   validUntil?: string;
   position?: string;
   department?: string;
+  avatarUrl?: string | null;
 }
 
 export type LessonType = 'LECTURE' | 'SEMINAR' | 'LAB' | 'EXAM' | 'OTHER';
@@ -179,6 +180,7 @@ export interface Contact {
   group?: string;
   department?: string;
   position?: string;
+  avatarUrl?: string | null;
   lastMessage?: Message | null;
   unreadCount: number;
 }

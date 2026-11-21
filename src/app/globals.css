@@ -14,6 +14,18 @@
 }
 
 /* Токены дизайн-системы — specs/02_DESIGN_SYSTEM.md §2 */
+/*
+ * Frosted glass для оверлеев — specs/02_DESIGN_SYSTEM.md §2.7.
+ * Только шапка, нижняя навигация, модалки и командная палитра.
+ * НЕ применять к прокручиваемым спискам карточек (60 FPS на 360px).
+ */
+@utility glass {
+  @apply border-slate-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800/80 dark:bg-[#12141A]/80;
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    @apply bg-white dark:bg-[#12141A];
+  }
+}
+
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
@@ -91,6 +103,27 @@
 @keyframes drawer-in {
   from { transform: translateX(24px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+@keyframes palette-in {
+  from { transform: translateY(-8px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+@keyframes check-in {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes pass-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(164px); }
 }
 @keyframes toast-in {
   from { transform: translateY(8px); opacity: 0; }

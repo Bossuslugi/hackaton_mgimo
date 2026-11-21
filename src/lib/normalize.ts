@@ -106,6 +106,7 @@ export function toUser(raw: unknown): User | null {
     validUntil: dateStr(pick(u, 'validUntil') ?? pick(student, 'validUntil')),
     position: optStr(pick(u, 'position', 'title')),
     department: optStr(pick(u, 'department')),
+    avatarUrl: optStr(pick(u, 'avatarUrl')) ?? null,
   };
 }
 
