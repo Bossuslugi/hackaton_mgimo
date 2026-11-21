@@ -18,13 +18,13 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
     const k = `${keyPrefix}-${i++}`;
     if (tok.startsWith('**')) {
       out.push(
-        <strong key={k} className="font-semibold text-slate-900">
+        <strong key={k} className="font-semibold text-slate-900 dark:text-zinc-50">
           {inline(tok.slice(2, -2), k)}
         </strong>,
       );
     } else if (tok.startsWith('`')) {
       out.push(
-        <code key={k} className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.85em] text-slate-800 break-words">
+        <code key={k} className="rounded bg-slate-100 dark:bg-zinc-800 px-1 py-0.5 font-mono text-[0.85em] text-slate-800 dark:text-zinc-100 break-words">
           {tok.slice(1, -1)}
         </code>,
       );
@@ -33,7 +33,7 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
       const href = mm?.[2] ?? '#';
       const safe = /^(https?:|mailto:|\/)/.test(href) ? href : '#';
       out.push(
-        <a key={k} href={safe} target="_blank" rel="noreferrer" className="text-blue-600 underline underline-offset-2 break-all">
+        <a key={k} href={safe} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline underline-offset-2 break-all">
           {mm?.[1]}
         </a>,
       );
@@ -77,7 +77,7 @@ export function Markdown({ source, compact = false }: { source: string; compact?
       blocks.push(
         <pre
           key={k}
-          className={`${gap} overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800`}
+          className={`${gap} overflow-x-auto rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 p-3 font-mono text-xs leading-relaxed text-slate-800 dark:text-zinc-100`}
         >
           {buf.join('\n')}
         </pre>,
@@ -90,10 +90,10 @@ export function Markdown({ source, compact = false }: { source: string; compact?
       const level = h[1].length;
       const cls =
         level === 1
-          ? 'text-xl font-semibold tracking-tight text-slate-900'
+          ? 'text-xl font-semibold tracking-tight text-slate-900 dark:text-zinc-50'
           : level === 2
-            ? 'text-base font-semibold text-slate-900'
-            : 'text-sm font-semibold text-slate-900';
+            ? 'text-base font-semibold text-slate-900 dark:text-zinc-50'
+            : 'text-sm font-semibold text-slate-900 dark:text-zinc-50';
       const Tag = (level === 1 ? 'h2' : level === 2 ? 'h3' : 'h4') as 'h2' | 'h3' | 'h4';
       blocks.push(
         <Tag key={k} className={`${blocks.length ? (compact ? 'mt-3' : 'mt-6') : ''} ${cls}`}>
@@ -105,7 +105,7 @@ export function Markdown({ source, compact = false }: { source: string; compact?
     }
 
     if (/^(-{3,}|\*{3,})$/.test(line.trim())) {
-      blocks.push(<hr key={k} className={`${gap} border-slate-200`} />);
+      blocks.push(<hr key={k} className={`${gap} border-slate-200 dark:border-zinc-800`} />);
       i++;
       continue;
     }
@@ -116,9 +116,9 @@ export function Markdown({ source, compact = false }: { source: string; compact?
       const rows: string[][] = [];
       while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(splitRow(lines[i++]));
       blocks.push(
-        <div key={k} className={`${gap} overflow-x-auto rounded-lg border border-slate-200`}>
+        <div key={k} className={`${gap} overflow-x-auto rounded-lg border border-slate-200 dark:border-zinc-800`}>
           <table className="w-full text-left text-sm tabular-nums">
-            <thead className="bg-slate-50 text-xs text-slate-500">
+            <thead className="bg-slate-50 dark:bg-zinc-900 text-xs text-slate-500 dark:text-zinc-400">
               <tr>
                 {head.map((c, j) => (
                   <th key={j} className="px-3 py-2 font-medium">
@@ -129,9 +129,9 @@ export function Markdown({ source, compact = false }: { source: string; compact?
             </thead>
             <tbody>
               {rows.map((r, ri) => (
-                <tr key={ri} className="border-t border-slate-200">
+                <tr key={ri} className="border-t border-slate-200 dark:border-zinc-800">
                   {r.map((c, j) => (
-                    <td key={j} className="px-3 py-2 text-slate-700">
+                    <td key={j} className="px-3 py-2 text-slate-700 dark:text-zinc-300">
                       {inline(c, `${k}r${ri}c${j}`)}
                     </td>
                   ))}
@@ -148,7 +148,7 @@ export function Markdown({ source, compact = false }: { source: string; compact?
       const buf: string[] = [];
       while (i < lines.length && lines[i].startsWith('>')) buf.push(lines[i++].replace(/^>\s?/, ''));
       blocks.push(
-        <blockquote key={k} className={`${gap} border-l-2 border-blue-600 bg-slate-50 py-2 pl-3 pr-2 text-sm text-slate-700`}>
+        <blockquote key={k} className={`${gap} border-l-2 border-blue-600 dark:border-blue-500 bg-slate-50 dark:bg-zinc-900 py-2 pl-3 pr-2 text-sm text-slate-700 dark:text-zinc-300`}>
           {inline(buf.join(' '), k)}
         </blockquote>,
       );
@@ -165,7 +165,7 @@ export function Markdown({ source, compact = false }: { source: string; compact?
       blocks.push(
         <ListTag
           key={k}
-          className={`${gap} space-y-1.5 pl-5 text-sm leading-relaxed text-slate-700 ${isUl ? 'list-disc marker:text-slate-400' : 'list-decimal marker:text-slate-500 marker:tabular-nums'}`}
+          className={`${gap} space-y-1.5 pl-5 text-sm leading-relaxed text-slate-700 dark:text-zinc-300 ${isUl ? 'list-disc marker:text-slate-400 dark:marker:text-zinc-500' : 'list-decimal marker:text-slate-500 dark:marker:text-zinc-400 marker:tabular-nums'}`}
         >
           {items.map((it, j) => (
             <li key={j}>{inline(it, `${k}-${j}`)}</li>
@@ -185,7 +185,7 @@ export function Markdown({ source, compact = false }: { source: string; compact?
     }
     if (!buf.length) buf.push(lines[i++]);
     blocks.push(
-      <p key={k} className={`${blocks.length ? gap : ''} text-sm leading-relaxed text-slate-700 break-words`}>
+      <p key={k} className={`${blocks.length ? gap : ''} text-sm leading-relaxed text-slate-700 dark:text-zinc-300 break-words`}>
         {buf.map((b, j) => (
           <Fragment key={j}>
             {j > 0 && ' '}

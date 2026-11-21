@@ -91,7 +91,7 @@ export function toUser(raw: unknown): User | null {
     id: str(pick(u, 'id')),
     email: str(pick(u, 'email')),
     fullName: str(pick(u, 'fullName', 'name'), composed || str(pick(u, 'email'))),
-    role: (role === 'ADMIN' || role === 'DEAN' || role === 'STAFF' ? 'ADMIN' : 'STUDENT') as Role,
+    role: toRole(role),
     group,
     faculty: optStr(pick(u, 'faculty') ?? pick(student, 'faculty')),
     program: optStr(pick(u, 'program', 'specialty', 'direction') ?? pick(student, 'program', 'specialty')),
@@ -105,7 +105,15 @@ export function toUser(raw: unknown): User | null {
     enrolledAt: dateStr(pick(u, 'enrolledAt') ?? pick(student, 'enrolledAt')),
     validUntil: dateStr(pick(u, 'validUntil') ?? pick(student, 'validUntil')),
     position: optStr(pick(u, 'position', 'title')),
+    department: optStr(pick(u, 'department')),
   };
+}
+
+export function toRole(v: unknown): Role {
+  const r = str(v).toUpperCase();
+  if (r === 'ADMIN' || r === 'DEAN' || r === 'STAFF') return 'ADMIN';
+  if (r === 'TEACHER' || r === 'LECTURER' || r === 'PROFESSOR') return 'TEACHER';
+  return 'STUDENT';
 }
 
 // ───────────────────────── schedule
@@ -157,6 +165,8 @@ export function toLesson(raw: unknown): Lesson | null {
     startTime: hhmm(pick(raw, 'startTime', 'start', 'startsAt', 'startAt')),
     endTime: hhmm(pick(raw, 'endTime', 'end', 'endsAt', 'endAt')),
     note: optStr(pick(raw, 'note', 'rescheduleReason', 'comment')),
+    group: optStr(pick(raw, 'groupName', 'group')),
+    building: optStr(pick(raw, 'building')),
   };
 }
 
@@ -204,6 +214,28 @@ export function toAssignment(raw: unknown): Assignment | null {
       const s = pick(raw, 'score', 'grade') ?? (submission ? pick(submission, 'score', 'grade') : undefined);
       return s === undefined ? null : num(s);
     })(),
+    group: optStr(pick(raw, 'groupName', 'group')),
+    authorName: optStr(pick(raw, 'authorName')),
+    taskPrompt: str(pick(raw, 'taskPrompt')),
+    starterTemplate: optStr(pick(raw, 'starterTemplate')) ?? null,
+    solutionText: optStr(pick(raw, 'solutionText')) ?? null,
+    studentComment: optStr(pick(raw, 'studentComment')) ?? null,
+    gradeAwarded: pick(raw, 'gradeAwarded') === undefined ? null : num(pick(raw, 'gradeAwarded')),
+    teacherFeedback: optStr(pick(raw, 'teacherFeedback')) ?? null,
+    material: isObj(raw.material)
+      ? {
+          id: str(pick(raw.material as Raw, 'id')),
+          title: str(pick(raw.material as Raw, 'title'), 'Методичка'),
+          category: MATERIAL_CATEGORY[str(pick(raw.material as Raw, 'category')).toUpperCase()] ?? 'NOTES',
+        }
+      : null,
+    student: isObj(raw.student)
+      ? {
+          id: str(pick(raw.student as Raw, 'id')),
+          fullName: str(pick(raw.student as Raw, 'fullName'), 'Студент'),
+          group: optStr(pick(raw.student as Raw, 'groupName', 'group')),
+        }
+      : undefined,
   };
 }
 
@@ -296,6 +328,10 @@ const REQUEST_TYPE: Record<string, RequestType> = {
   MATERIAL_AID: 'FINANCIAL_AID',
   RETAKE: 'RETAKE',
   RETAKE_APPLICATION: 'RETAKE',
+  ACADEMIC_TRANSCRIPT: 'ACADEMIC_TRANSCRIPT',
+  TRANSCRIPT: 'ACADEMIC_TRANSCRIPT',
+  PGAS: 'PGAS',
+  DORMITORY_PASS: 'DORMITORY_PASS',
 };
 
 const REQUEST_STATUS: Record<string, RequestStatus> = {
@@ -333,6 +369,20 @@ export function toRequest(raw: unknown): StudentRequest | null {
     student: student
       ? { id: student.id, fullName: student.fullName, group: student.group, email: student.email }
       : undefined,
+    payload: (() => {
+      const p = pick(r, 'payload');
+      if (isObj(p)) return p;
+      const j = pick(r, 'payloadJson');
+      if (typeof j === 'string' && j) {
+        try {
+          const parsed: unknown = JSON.parse(j);
+          return isObj(parsed) ? parsed : null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    })(),
   };
 }
 

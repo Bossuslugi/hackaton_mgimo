@@ -31,7 +31,7 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={cn('inline-flex min-w-0 rounded-lg bg-slate-100 p-1', block && 'flex w-full', className)}
+      className={cn('inline-flex min-w-0 rounded-lg bg-slate-100 dark:bg-zinc-900 p-1', block && 'flex w-full', className)}
     >
       {options.map((o) => {
         const active = o.value === value;
@@ -49,14 +49,14 @@ export function Segmented<T extends string>({
               size === 'md' ? 'min-h-9 text-sm' : 'min-h-8 text-xs',
               block && 'flex-1',
               active
-                ? 'border-slate-200 bg-white text-slate-900'
-                : 'border-transparent text-slate-500 hover:text-slate-900',
+                ? 'border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-50'
+                : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-50',
               'disabled:opacity-40',
             )}
           >
             <span className="truncate">{o.label}</span>
             {o.count !== undefined && (
-              <span className={cn('tabular-nums text-xs', active ? 'text-slate-500' : 'text-slate-400')}>{o.count}</span>
+              <span className={cn('tabular-nums text-xs', active ? 'text-slate-500 dark:text-zinc-400' : 'text-slate-400 dark:text-zinc-500')}>{o.count}</span>
             )}
           </button>
         );

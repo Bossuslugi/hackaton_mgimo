@@ -2,16 +2,16 @@ import { forwardRef, type InputHTMLAttributes, type ReactNode, type TextareaHTML
 import { cn } from '@/lib/cn';
 
 const base =
-  'w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 ' +
-  'transition-colors focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/15 disabled:bg-slate-50';
+  'w-full rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-900 dark:text-zinc-50 placeholder:text-slate-400 dark:placeholder:text-zinc-500 ' +
+  'transition-colors focus:border-blue-600 dark:focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600/15 dark:focus:ring-blue-500/15 disabled:bg-slate-50 dark:disabled:bg-zinc-950';
 
 export function Label({ children, htmlFor, hint }: { children: ReactNode; htmlFor?: string; hint?: ReactNode }) {
   return (
     <div className="mb-1.5 flex items-baseline justify-between gap-2">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-slate-900">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-slate-900 dark:text-zinc-50">
         {children}
       </label>
-      {hint && <span className="text-xs text-slate-500">{hint}</span>}
+      {hint && <span className="text-xs text-slate-500 dark:text-zinc-400">{hint}</span>}
     </div>
   );
 }

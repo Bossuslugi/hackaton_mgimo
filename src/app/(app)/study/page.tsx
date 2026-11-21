@@ -1,38 +1,39 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BookMarked,
   BookOpen,
   CalendarClock,
+  Code2,
   CircleCheck,
   ClipboardList,
-  Clock,
   ExternalLink,
   FileText,
   Search,
-  Send,
   Sparkles,
 } from 'lucide-react';
 import { useCopilot } from '@/components/copilot/CopilotProvider';
+import { WriteTeacherButton } from '@/components/messages/WriteTeacherButton';
+import { useSession } from '@/components/shell/SessionProvider';
 import { StudentOnly } from '@/components/shell/StudentOnly';
+import { TeacherCabinet } from '@/components/study/TeacherCabinet';
+import { Workspace } from '@/components/study/Workspace';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Countdown } from '@/components/ui/Countdown';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { Input, Label, Select, Textarea } from '@/components/ui/Field';
+import { Input, Select } from '@/components/ui/Field';
 import { Markdown } from '@/components/ui/Markdown';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Segmented } from '@/components/ui/Segmented';
 import { Sheet } from '@/components/ui/Sheet';
 import { SkeletonCard } from '@/components/ui/Skeleton';
-import { useToast } from '@/components/ui/Toast';
-import { ApiError, post } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { fmtDate, fmtDateTime, MATERIAL_CATEGORY_LABEL, plural } from '@/lib/format';
-import { toAssignment, toStudy } from '@/lib/normalize';
+import { toStudy } from '@/lib/normalize';
 import type { Assignment, Material, MaterialCategory } from '@/lib/types';
 import { ICON_STROKE } from '@/lib/ui';
 import { useApi } from '@/lib/use-api';
@@ -42,6 +43,8 @@ type HwFilter = 'active' | 'done' | 'all';
 type Study = ReturnType<typeof toStudy>;
 
 export default function StudyPage() {
+  const { isTeacher } = useSession();
+  if (isTeacher) return <TeacherCabinet />;
   return (
     <StudentOnly>
       <StudyTrack />
@@ -83,6 +86,7 @@ function StudyTrack() {
         tab === 'homework' ? (
           <Homework
             items={state.data.assignments}
+            materials={state.data.materials}
             onUpdate={(a) =>
               state.setData((d) => (d ? { ...d, assignments: d.assignments.map((x) => (x.id === a.id ? a : x)) } : d))
             }
@@ -97,9 +101,10 @@ function StudyTrack() {
 
 // ───────────────────────── домашние задания
 
-function Homework({ items, onUpdate }: { items: Assignment[]; onUpdate: (a: Assignment) => void }) {
+function Homework({ items, materials, onUpdate }: { items: Assignment[]; materials: Material[]; onUpdate: (a: Assignment) => void }) {
   const [filter, setFilter] = useState<HwFilter>('active');
-  const [submitting, setSubmitting] = useState<Assignment | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = openId ? (items.find((a) => a.id === openId) ?? null) : null;
 
   const isActive = (a: Assignment) => a.status === 'ACTIVE' || a.status === 'OVERDUE';
   const list = useMemo(() => {
@@ -126,8 +131,8 @@ function Homework({ items, onUpdate }: { items: Assignment[]; onUpdate: (a: Assi
           ]}
         />
         {totalPoints > 0 && (
-          <p className="text-sm text-slate-500">
-            На кону <span className="font-medium text-slate-900 tabular-nums">+{totalPoints}</span>{' '}
+          <p className="text-sm text-slate-500 dark:text-zinc-400">
+            На кону <span className="font-medium text-slate-900 dark:text-zinc-50 tabular-nums">+{totalPoints}</span>{' '}
             {plural(totalPoints, ['балл', 'балла', 'баллов'])} БРС
           </p>
         )}
@@ -142,24 +147,17 @@ function Homework({ items, onUpdate }: { items: Assignment[]; onUpdate: (a: Assi
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:gap-4">
           {list.map((a) => (
-            <AssignmentCard key={a.id} a={a} onSubmit={() => setSubmitting(a)} />
+            <AssignmentCard key={a.id} a={a} onOpen={() => setOpenId(a.id)} />
           ))}
         </div>
       )}
 
-      <SubmitSheet
-        assignment={submitting}
-        onClose={() => setSubmitting(null)}
-        onDone={(a) => {
-          onUpdate(a);
-          setSubmitting(null);
-        }}
-      />
+      <Workspace assignment={open} materials={materials} onClose={() => setOpenId(null)} onUpdate={onUpdate} />
     </>
   );
 }
 
-function AssignmentCard({ a, onSubmit }: { a: Assignment; onSubmit: () => void }) {
+function AssignmentCard({ a, onOpen }: { a: Assignment; onOpen: () => void }) {
   const copilot = useCopilot();
   const active = a.status === 'ACTIVE' || a.status === 'OVERDUE';
 
@@ -173,21 +171,21 @@ function AssignmentCard({ a, onSubmit }: { a: Assignment; onSubmit: () => void }
   return (
     <Card className="flex flex-col p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 truncate text-xs text-slate-500">{a.subject}</p>
+        <p className="min-w-0 truncate text-xs text-slate-500 dark:text-zinc-400">{a.subject}</p>
         {active ? (
           <Countdown deadline={a.deadline} />
         ) : a.status === 'GRADED' ? (
           <Badge tone="success" className="tabular-nums">
-            Оценено{a.score !== null && a.score !== undefined ? ` · ${a.score}` : ''}
+            Оценено{(a.gradeAwarded ?? a.score) !== null && (a.gradeAwarded ?? a.score) !== undefined ? ` · ${a.gradeAwarded ?? a.score} / ${a.points}` : ''}
           </Badge>
         ) : (
           <Badge tone="brand">На проверке</Badge>
         )}
       </div>
-      <h3 className="mt-1.5 text-[15px] font-semibold leading-snug text-slate-900 break-words">{a.title}</h3>
-      {a.description && <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-slate-600">{a.description}</p>}
+      <h3 className="mt-1.5 text-[15px] font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{a.title}</h3>
+      {a.description && <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">{a.description}</p>}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-zinc-400">
         <span className="inline-flex items-center gap-1.5 tabular-nums">
           <CalendarClock size={14} strokeWidth={ICON_STROKE} />
           до {fmtDateTime(a.deadline)}
@@ -204,154 +202,46 @@ function AssignmentCard({ a, onSubmit }: { a: Assignment; onSubmit: () => void }
           href={a.submissionLink}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex min-w-0 items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700"
+          className="mt-3 inline-flex min-w-0 items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-400"
         >
           <ExternalLink size={14} strokeWidth={ICON_STROKE} className="shrink-0" />
           <span className="truncate">{a.submissionLink}</span>
         </a>
       )}
       {!active && a.submittedAt && (
-        <p className="mt-1 text-xs text-slate-500 tabular-nums">Сдано {fmtDateTime(a.submittedAt)}</p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400 tabular-nums">Сдано {fmtDateTime(a.submittedAt)}</p>
       )}
 
-      <div className="mt-auto flex flex-col gap-2 pt-4 sm:flex-row">
-        {active && (
-          <Button onClick={onSubmit} icon={<Send size={16} strokeWidth={ICON_STROKE} />} className="min-h-11 sm:min-h-10 sm:flex-1">
-            Сдать работу
-          </Button>
-        )}
+      {a.status === 'GRADED' && a.teacherFeedback && (
+        <p className="mt-3 line-clamp-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/60 dark:text-emerald-200">
+          {a.teacherFeedback}
+        </p>
+      )}
+
+      <div className="mt-auto flex flex-col gap-2 pt-4 sm:flex-row sm:flex-wrap">
+        <Button
+          variant={active ? 'primary' : 'secondary'}
+          onClick={onOpen}
+          icon={<Code2 size={16} strokeWidth={ICON_STROKE} />}
+          className="min-h-11 sm:min-h-10 sm:flex-1"
+        >
+          {active ? 'Открыть задачу и решить' : a.status === 'GRADED' ? 'Решение и рецензия' : 'Открыть решение'}
+        </Button>
         <Button
           variant="secondary"
           onClick={askAi}
-          icon={<Sparkles size={16} strokeWidth={ICON_STROKE} className="text-blue-600" />}
+          icon={<Sparkles size={16} strokeWidth={ICON_STROKE} className="text-blue-600 dark:text-blue-400" />}
           className="min-h-11 sm:min-h-10 sm:flex-1"
         >
           Разобрать с ИИ
         </Button>
       </div>
+      <WriteTeacherButton
+        teacherName={a.authorName}
+        draft={`Добрый день! Подскажите по поводу задания «${a.title}»: `}
+        className="mt-1 self-start px-2 text-slate-500 dark:text-zinc-400"
+      />
     </Card>
-  );
-}
-
-function SubmitSheet({
-  assignment,
-  onClose,
-  onDone,
-}: {
-  assignment: Assignment | null;
-  onClose: () => void;
-  onDone: (a: Assignment) => void;
-}) {
-  const toast = useToast();
-  const [link, setLink] = useState('');
-  const [comment, setComment] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const close = () => {
-    setLink('');
-    setComment('');
-    setError(null);
-    onClose();
-  };
-
-  async function submit(e?: FormEvent) {
-    e?.preventDefault();
-    if (!assignment) return;
-    let url: URL | null = null;
-    try {
-      url = new URL(link.trim());
-    } catch {
-      url = null;
-    }
-    if (!url || !/^https?:$/.test(url.protocol)) {
-      setError('Вставьте ссылку на работу, начиная с https://');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const raw = await post(`/api/study/assignments/${assignment.id}/submit`, {
-        link: url.toString(),
-        comment: comment.trim(),
-      });
-      const fromApi = raw && typeof raw === 'object' && 'assignment' in raw ? toAssignment((raw as { assignment: unknown }).assignment) : null;
-      onDone({
-        ...assignment,
-        ...(fromApi ?? {}),
-        status: fromApi?.status && fromApi.status !== 'ACTIVE' ? fromApi.status : 'SUBMITTED',
-        submissionLink: fromApi?.submissionLink ?? url.toString(),
-        submittedAt: fromApi?.submittedAt ?? new Date().toISOString(),
-      });
-      toast.success('Работа отправлена', `${assignment.subject} · ${assignment.title}`);
-      setLink('');
-      setComment('');
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось отправить работу.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Sheet
-      open={assignment !== null}
-      onClose={close}
-      title="Сдать работу"
-      description={assignment ? `${assignment.subject} · ${assignment.title}` : undefined}
-      footer={
-        <>
-          <Button variant="secondary" onClick={close} className="min-h-11 sm:min-h-0">
-            Отмена
-          </Button>
-          <Button onClick={() => void submit()} loading={busy} icon={<Send size={16} strokeWidth={ICON_STROKE} />} className="min-h-11 sm:min-h-0">
-            Отправить на проверку
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="space-y-4" noValidate>
-        {assignment && (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-            <Clock size={14} strokeWidth={ICON_STROKE} className="text-slate-400" />
-            <span className="tabular-nums">Дедлайн {fmtDateTime(assignment.deadline)}</span>
-            <Countdown deadline={assignment.deadline} />
-          </div>
-        )}
-        <div>
-          <Label htmlFor="sub-link" hint="GitHub, Диск, Overleaf">
-            Ссылка на работу
-          </Label>
-          <Input
-            id="sub-link"
-            type="url"
-            inputMode="url"
-            placeholder="https://github.com/…"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            aria-invalid={Boolean(error)}
-            data-autofocus
-          />
-        </div>
-        <div>
-          <Label htmlFor="sub-comment" hint="Необязательно">
-            Комментарий преподавателю
-          </Label>
-          <Textarea
-            id="sub-comment"
-            placeholder="Что сделано, на что обратить внимание"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-        </div>
-        {error && (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
-      </form>
-    </Sheet>
   );
 }
 
@@ -386,7 +276,7 @@ function Materials({ items }: { items: Material[] }) {
       <Card className="mb-4 p-3 sm:p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="relative">
-            <Search size={16} strokeWidth={ICON_STROKE} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} strokeWidth={ICON_STROKE} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-500" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -415,7 +305,7 @@ function Materials({ items }: { items: Material[] }) {
                 onClick={() => setCategory(c)}
                 className={cn(
                   'min-h-9 rounded-lg border px-3 text-sm transition-colors',
-                  on ? 'border-blue-200 bg-blue-50 font-medium text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                  on ? 'border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 font-medium text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900',
                 )}
               >
                 {c === 'ALL' ? 'Все' : MATERIAL_CATEGORY_LABEL[c]}
@@ -453,23 +343,23 @@ function Materials({ items }: { items: Material[] }) {
                 key={m.id}
                 type="button"
                 onClick={() => setReading(m)}
-                className="group flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 sm:p-5"
+                className="group flex min-w-0 flex-col rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] p-4 text-left transition-colors hover:border-slate-300 dark:hover:border-zinc-700 sm:p-5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone="neutral" icon={<Icon size={12} strokeWidth={ICON_STROKE} />}>
                     {MATERIAL_CATEGORY_LABEL[m.category]}
                   </Badge>
                   {m.readingMinutes && (
-                    <span className="text-xs text-slate-400 tabular-nums">{m.readingMinutes} мин</span>
+                    <span className="text-xs text-slate-400 dark:text-zinc-500 tabular-nums">{m.readingMinutes} мин</span>
                   )}
                 </div>
-                <h3 className="mt-3 text-[15px] font-semibold leading-snug text-slate-900 break-words group-hover:text-blue-700">
+                <h3 className="mt-3 text-[15px] font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words group-hover:text-blue-700 dark:group-hover:text-blue-400">
                   {m.title}
                 </h3>
-                <p className="mt-1 truncate text-xs text-slate-500">{m.subject}</p>
-                {m.description && <p className="mt-2 line-clamp-2 text-sm text-slate-600">{m.description}</p>}
+                <p className="mt-1 truncate text-xs text-slate-500 dark:text-zinc-400">{m.subject}</p>
+                {m.description && <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-zinc-400">{m.description}</p>}
                 {m.updatedAt && (
-                  <p className="mt-auto pt-3 text-xs text-slate-400 tabular-nums">Обновлено {fmtDate(m.updatedAt)}</p>
+                  <p className="mt-auto pt-3 text-xs text-slate-400 dark:text-zinc-500 tabular-nums">Обновлено {fmtDate(m.updatedAt)}</p>
                 )}
               </button>
             );
@@ -487,7 +377,7 @@ function Materials({ items }: { items: Material[] }) {
           reading && (
             <Button
               variant="secondary"
-              icon={<Sparkles size={16} strokeWidth={ICON_STROKE} className="text-blue-600" />}
+              icon={<Sparkles size={16} strokeWidth={ICON_STROKE} className="text-blue-600 dark:text-blue-400" />}
               className="min-h-11 sm:min-h-0"
               onClick={() => {
                 const m = reading;
@@ -509,7 +399,7 @@ function Materials({ items }: { items: Material[] }) {
             {reading.contentMarkdown.trim() ? (
               <Markdown source={reading.contentMarkdown} />
             ) : (
-              <p className="text-sm text-slate-500">Текст материала пока не загружен.</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400">Текст материала пока не загружен.</p>
             )}
           </div>
         )}

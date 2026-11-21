@@ -23,9 +23,9 @@ interface ToastApi {
 const Ctx = createContext<ToastApi | null>(null);
 
 const ICONS: Record<Tone, ReactNode> = {
-  success: <CircleCheck size={18} strokeWidth={ICON_STROKE} className="text-emerald-600" />,
-  error: <CircleX size={18} strokeWidth={ICON_STROKE} className="text-red-600" />,
-  info: <Info size={18} strokeWidth={ICON_STROKE} className="text-blue-600" />,
+  success: <CircleCheck size={18} strokeWidth={ICON_STROKE} className="text-emerald-600 dark:text-emerald-400" />,
+  error: <CircleX size={18} strokeWidth={ICON_STROKE} className="text-red-600 dark:text-red-400" />,
+  info: <Info size={18} strokeWidth={ICON_STROKE} className="text-blue-600 dark:text-blue-400" />,
 };
 
 let seq = 0;
@@ -66,20 +66,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role="status"
             className={cn(
-              'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 pr-2 shadow-sm',
+              'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] p-3 pr-2 shadow-sm',
               'animate-[toast-in_180ms_ease-out]',
             )}
           >
             <span className="mt-0.5 shrink-0">{ICONS[t.tone]}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-900">{t.title}</p>
-              {t.description && <p className="mt-0.5 text-sm text-slate-500 break-words">{t.description}</p>}
+              <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">{t.title}</p>
+              {t.description && <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400 break-words">{t.description}</p>}
             </div>
             <button
               type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Скрыть уведомление"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-400 dark:text-zinc-500 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-300"
             >
               <X size={16} strokeWidth={ICON_STROKE} />
             </button>

@@ -97,17 +97,17 @@ export function RequestsQueue({ state }: { state: ApiState<StudentRequest[]> }) 
         </Button>
       </div>
     ) : (
-      <span className="text-xs text-slate-500 tabular-nums xl:block xl:text-right">
+      <span className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums xl:block xl:text-right">
         {r.registryNumber ? <span className="font-mono">№ {r.registryNumber}</span> : fmtDateTime(r.updatedAt)}
       </span>
     );
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-zinc-800 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
-          <h2 className="text-sm font-medium text-slate-900">Заявки студентов</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Проверка, подпись ЭЦП и отказ с комментарием</p>
+          <h2 className="text-sm font-medium text-slate-900 dark:text-zinc-50">Заявки студентов</h2>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400">Проверка, подпись ЭЦП и отказ с комментарием</p>
         </div>
         <div className="max-w-full overflow-x-auto">
           <Segmented<Filter>
@@ -126,7 +126,7 @@ export function RequestsQueue({ state }: { state: ApiState<StudentRequest[]> }) 
       </div>
 
       {loading && !data ? (
-        <div className="divide-y divide-slate-200">
+        <div className="divide-y divide-slate-200 dark:divide-zinc-800">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4 p-4 sm:px-5">
               <div className="flex-1">
@@ -154,7 +154,7 @@ export function RequestsQueue({ state }: { state: ApiState<StudentRequest[]> }) 
         <>
           {/* xl+: таблица */}
           <table className="hidden w-full text-left text-sm xl:table">
-            <thead className="bg-slate-50 text-xs text-slate-500">
+            <thead className="bg-slate-50 dark:bg-zinc-900 text-xs text-slate-500 dark:text-zinc-400">
               <tr>
                 <th className="px-5 py-2.5 font-medium">Студент</th>
                 <th className="px-3 py-2.5 font-medium">Документ</th>
@@ -163,18 +163,18 @@ export function RequestsQueue({ state }: { state: ApiState<StudentRequest[]> }) 
                 <th className="px-5 py-2.5 text-right font-medium">Действие</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
               {list.map((r) => (
-                <tr key={r.id} className="align-middle hover:bg-slate-50/60">
+                <tr key={r.id} className="align-middle hover:bg-slate-50/60 dark:hover:bg-zinc-900/60">
                   <td className="px-5 py-3">
-                    <p className="font-medium text-slate-900">{r.student?.fullName ?? '—'}</p>
-                    <p className="text-xs text-slate-500 tabular-nums">{r.student?.group ?? r.student?.email}</p>
+                    <p className="font-medium text-slate-900 dark:text-zinc-50">{r.student?.fullName ?? '—'}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">{r.student?.group ?? r.student?.email}</p>
                   </td>
                   <td className="px-3 py-3">
-                    <p className="text-slate-900">{REQUEST_TYPE_LABEL[r.type]}</p>
-                    {r.comment && <p className="max-w-56 truncate text-xs text-slate-500">{r.comment}</p>}
+                    <p className="text-slate-900 dark:text-zinc-50">{REQUEST_TYPE_LABEL[r.type]}</p>
+                    {r.comment && <p className="max-w-56 truncate text-xs text-slate-500 dark:text-zinc-400">{r.comment}</p>}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-slate-600 tabular-nums">{fmtDateTime(r.createdAt)}</td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-zinc-400 tabular-nums">{fmtDateTime(r.createdAt)}</td>
                   <td className="px-3 py-3">
                     <Badge tone={REQUEST_STATUS_TONE[r.status]}>{REQUEST_STATUS_LABEL[r.status]}</Badge>
                   </td>
@@ -185,20 +185,20 @@ export function RequestsQueue({ state }: { state: ApiState<StudentRequest[]> }) 
           </table>
 
           {/* < xl: карточки */}
-          <ul className="divide-y divide-slate-200 xl:hidden">
+          <ul className="divide-y divide-slate-200 dark:divide-zinc-800 xl:hidden">
             {list.map((r) => (
               <li key={r.id} className="p-4 sm:px-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900 break-words">{r.student?.fullName ?? '—'}</p>
-                    <p className="text-xs text-slate-500 tabular-nums">
+                    <p className="text-sm font-medium text-slate-900 dark:text-zinc-50 break-words">{r.student?.fullName ?? '—'}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">
                       {r.student?.group ?? r.student?.email} · {fmtDateTime(r.createdAt)}
                     </p>
                   </div>
                   <Badge tone={REQUEST_STATUS_TONE[r.status]}>{REQUEST_STATUS_LABEL[r.status]}</Badge>
                 </div>
-                <p className="mt-2 text-sm text-slate-700">{REQUEST_TYPE_LABEL[r.type]}</p>
-                {r.comment && <p className="mt-0.5 text-sm text-slate-500 break-words">{r.comment}</p>}
+                <p className="mt-2 text-sm text-slate-700 dark:text-zinc-300">{REQUEST_TYPE_LABEL[r.type]}</p>
+                {r.comment && <p className="mt-0.5 text-sm text-slate-500 dark:text-zinc-400 break-words">{r.comment}</p>}
                 <div className="mt-3">{actions(r)}</div>
               </li>
             ))}

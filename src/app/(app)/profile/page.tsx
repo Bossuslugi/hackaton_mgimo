@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { QRCode } from '@/components/ui/QRCode';
+import { ThemeSwitch } from '@/components/ui/ThemeToggle';
 import { apiRaw, type RawResponse } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { fmtDate, fmtDateShort, initials } from '@/lib/format';
@@ -27,7 +28,7 @@ export default function ProfilePage() {
     <>
       <PageHeader
         title="Профиль"
-        description={session.isAdmin ? 'Учётная запись сотрудника деканата' : 'Электронный студенческий билет и данные об обучении'}
+        description={session.isAdmin ? 'Учётная запись сотрудника деканата' : session.isTeacher ? 'Учётная запись преподавателя' : 'Электронный студенческий билет и данные об обучении'}
         actions={
           <Button
             variant="secondary"
@@ -46,8 +47,15 @@ export default function ProfilePage() {
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-4">
         <div className="space-y-3 lg:space-y-4">
-          {session.isAdmin ? <StaffCard user={user} /> : <StudentCard user={user} />}
-          <StudyData user={user} isAdmin={session.isAdmin} />
+          {session.isAdmin || session.isTeacher ? <StaffCard user={user} /> : <StudentCard user={user} />}
+          <StudyData user={user} isAdmin={session.isAdmin || session.isTeacher} />
+          <Card className="p-4 sm:p-5">
+            <CardHeader title="Оформление" />
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-slate-600 dark:text-zinc-400">Тема интерфейса сохраняется на этом устройстве.</p>
+              <ThemeSwitch />
+            </div>
+          </Card>
         </div>
         <IdorTest />
       </div>
@@ -62,23 +70,23 @@ function StudentCard({ user }: { user: User }) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2">
           <LogoMark size={22} />
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Студенческий билет</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">Студенческий билет</span>
         </div>
         <Badge tone="success">Действителен</Badge>
       </div>
       <div className="flex flex-col gap-5 p-4 sm:flex-row sm:p-5">
         <div className="flex min-w-0 flex-1 gap-4">
           <div
-            className="flex h-24 w-[72px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xl font-semibold text-slate-500"
+            className="flex h-24 w-[72px] shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-800 text-xl font-semibold text-slate-500 dark:text-zinc-400"
             aria-hidden
           >
             {initials(user.fullName)}
           </div>
           <div className="min-w-0">
-            <p className="text-base font-semibold leading-snug text-slate-900 break-words">{user.fullName}</p>
+            <p className="text-base font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{user.fullName}</p>
             <dl className="mt-2 space-y-1 text-sm">
               <Row k="Группа" v={user.group ?? '—'} mono />
               <Row k="№ билета" v={number} mono />
@@ -86,9 +94,9 @@ function StudentCard({ user }: { user: User }) {
             </dl>
           </div>
         </div>
-        <div className="flex items-center gap-3 border-t border-slate-200 pt-4 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
-          <QRCode value={qr} size={104} title="QR-код студенческого билета" className="rounded-md border border-slate-200" />
-          <p className="text-xs leading-snug text-slate-500 sm:text-right">
+        <div className="flex items-center gap-3 border-t border-slate-200 dark:border-zinc-800 pt-4 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
+          <QRCode value={qr} size={104} title="QR-код студенческого билета" className="rounded-md border border-slate-200 dark:border-zinc-800" />
+          <p className="text-xs leading-snug text-slate-500 dark:text-zinc-400 sm:text-right">
             Покажите на входе
             <br className="hidden sm:block" /> или в библиотеке
           </p>
@@ -102,12 +110,12 @@ function StaffCard({ user }: { user: User }) {
   return (
     <Card className="p-4 sm:p-5">
       <div className="flex items-center gap-4">
-        <span className="inline-flex size-14 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-lg font-semibold text-slate-600">
+        <span className="inline-flex size-14 items-center justify-center rounded-full border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-800 text-lg font-semibold text-slate-600 dark:text-zinc-400">
           {initials(user.fullName)}
         </span>
         <div className="min-w-0">
-          <p className="text-base font-semibold text-slate-900 break-words">{user.fullName}</p>
-          <p className="text-sm text-slate-500">{user.position ?? 'Сотрудник деканата'}</p>
+          <p className="text-base font-semibold text-slate-900 dark:text-zinc-50 break-words">{user.fullName}</p>
+          <p className="text-sm text-slate-500 dark:text-zinc-400">{user.position ?? 'Сотрудник деканата'}</p>
           <Badge tone="brand" className="mt-1.5">
             Роль: ADMIN
           </Badge>
@@ -120,8 +128,8 @@ function StaffCard({ user }: { user: User }) {
 function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
     <div className="flex gap-2">
-      <dt className="w-24 shrink-0 text-slate-500">{k}</dt>
-      <dd className={cn('min-w-0 break-words text-slate-900', mono && 'tabular-nums')}>{v}</dd>
+      <dt className="w-24 shrink-0 text-slate-500 dark:text-zinc-400">{k}</dt>
+      <dd className={cn('min-w-0 break-words text-slate-900 dark:text-zinc-50', mono && 'tabular-nums')}>{v}</dd>
     </div>
   );
 }
@@ -146,11 +154,11 @@ function StudyData({ user, isAdmin }: { user: User; isAdmin: boolean }) {
   return (
     <Card className="p-4 sm:p-5">
       <CardHeader title={isAdmin ? 'Учётная запись' : 'Данные об обучении'} />
-      <dl className="mt-3 divide-y divide-slate-200">
+      <dl className="mt-3 divide-y divide-slate-200 dark:divide-zinc-800">
         {rows.map(([k, v, num]) => (
           <div key={k} className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:gap-4">
-            <dt className="text-sm text-slate-500 sm:w-40 sm:shrink-0">{k}</dt>
-            <dd className={cn('min-w-0 break-words text-sm text-slate-900', num && 'tabular-nums')}>{v ?? '—'}</dd>
+            <dt className="text-sm text-slate-500 dark:text-zinc-400 sm:w-40 sm:shrink-0">{k}</dt>
+            <dd className={cn('min-w-0 break-words text-sm text-slate-900 dark:text-zinc-50', num && 'tabular-nums')}>{v ?? '—'}</dd>
           </div>
         ))}
       </dl>
@@ -192,18 +200,18 @@ function IdorTest() {
   return (
     <Card className="flex flex-col p-4 sm:p-5">
       <CardHeader title="Для жюри" icon={<ShieldCheck size={14} strokeWidth={ICON_STROKE} />} />
-      <h2 className="mt-3 text-base font-semibold text-slate-900">Проверка безопасности (IDOR-тест)</h2>
-      <p className="mt-1 text-sm leading-relaxed text-slate-600">
+      <h2 className="mt-3 text-base font-semibold text-slate-900 dark:text-zinc-50">Проверка безопасности (IDOR-тест)</h2>
+      <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
         Попробуем открыть чужую заявку, подставив её ID в адрес. Сервер обязан сверить владельца по сессии, а не доверять
         ID из запроса.
       </p>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
-        <div className="flex flex-wrap items-center gap-2 bg-slate-50 px-3 py-2 font-mono text-xs">
-          <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-medium text-slate-900">GET</span>
-          <span className="min-w-0 break-all text-slate-700">{IDOR_PATH}</span>
+      <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 dark:border-zinc-800">
+        <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-zinc-900 px-3 py-2 font-mono text-xs">
+          <span className="rounded border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] px-1.5 py-0.5 font-medium text-slate-900 dark:text-zinc-50">GET</span>
+          <span className="min-w-0 break-all text-slate-700 dark:text-zinc-300">{IDOR_PATH}</span>
         </div>
-        <p className="border-t border-slate-200 px-3 py-2 text-xs text-slate-500">
+        <p className="border-t border-slate-200 dark:border-zinc-800 px-3 py-2 text-xs text-slate-500 dark:text-zinc-400">
           credentials: <span className="font-mono">include</span> · ваша сессия · ID чужой заявки
         </p>
       </div>
@@ -222,9 +230,9 @@ function IdorTest() {
           <div
             className={cn(
               'flex gap-3 rounded-lg border p-3.5',
-              v.tone === 'success' && 'border-emerald-200 bg-emerald-50',
-              v.tone === 'warning' && 'border-amber-200 bg-amber-50',
-              v.tone === 'danger' && 'border-red-200 bg-red-50',
+              v.tone === 'success' && 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/60',
+              v.tone === 'warning' && 'border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/60',
+              v.tone === 'danger' && 'border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/60',
             )}
           >
             <v.icon
@@ -232,18 +240,18 @@ function IdorTest() {
               strokeWidth={ICON_STROKE}
               className={cn(
                 'mt-0.5 shrink-0',
-                v.tone === 'success' && 'text-emerald-700',
-                v.tone === 'warning' && 'text-amber-700',
-                v.tone === 'danger' && 'text-red-700',
+                v.tone === 'success' && 'text-emerald-700 dark:text-emerald-300',
+                v.tone === 'warning' && 'text-amber-700 dark:text-amber-300',
+                v.tone === 'danger' && 'text-red-700 dark:text-red-300',
               )}
             />
             <div className="min-w-0">
               <p
                 className={cn(
                   'text-base font-semibold tabular-nums',
-                  v.tone === 'success' && 'text-emerald-800',
-                  v.tone === 'warning' && 'text-amber-800',
-                  v.tone === 'danger' && 'text-red-800',
+                  v.tone === 'success' && 'text-emerald-800 dark:text-emerald-200',
+                  v.tone === 'warning' && 'text-amber-800 dark:text-amber-200',
+                  v.tone === 'danger' && 'text-red-800 dark:text-red-200',
                 )}
               >
                 {v.title}
@@ -251,9 +259,9 @@ function IdorTest() {
               <p
                 className={cn(
                   'mt-0.5 text-sm',
-                  v.tone === 'success' && 'text-emerald-700',
-                  v.tone === 'warning' && 'text-amber-700',
-                  v.tone === 'danger' && 'text-red-700',
+                  v.tone === 'success' && 'text-emerald-700 dark:text-emerald-300',
+                  v.tone === 'warning' && 'text-amber-700 dark:text-amber-300',
+                  v.tone === 'danger' && 'text-red-700 dark:text-red-300',
                 )}
               >
                 {v.text}
@@ -261,14 +269,14 @@ function IdorTest() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-slate-200">
-            <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">
-              <span className="text-slate-900">
+          <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3 py-2 font-mono text-xs">
+              <span className="text-slate-900 dark:text-zinc-50">
                 HTTP <span className="font-semibold tabular-nums">{res.status || '—'}</span> {res.statusText}
               </span>
-              <span className="text-slate-500 tabular-nums">{res.durationMs} ms</span>
+              <span className="text-slate-500 dark:text-zinc-400 tabular-nums">{res.durationMs} ms</span>
             </div>
-            <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-all bg-white p-3 font-mono text-xs leading-relaxed text-slate-700">
+            <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-all bg-white dark:bg-[#12141A] p-3 font-mono text-xs leading-relaxed text-slate-700 dark:text-zinc-300">
               {body || '(пустое тело ответа)'}
             </pre>
           </div>

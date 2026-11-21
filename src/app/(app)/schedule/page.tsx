@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarOff, MapPin, UserRound } from 'lucide-react';
+import { CalendarDays, CalendarOff, DoorOpen, MapPin, Search, UserRound } from 'lucide-react';
+import { Bookings } from '@/components/schedule/Bookings';
+import { ScheduleSearch } from '@/components/schedule/ScheduleSearch';
 import { StudentOnly } from '@/components/shell/StudentOnly';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -34,11 +36,46 @@ function weekDates(now = new Date()): Date[] {
 const dayNum = new Intl.DateTimeFormat('ru-RU', { day: 'numeric' });
 const dayMonth = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' });
 
+type Section = 'my' | 'search' | 'booking';
+
 export default function SchedulePage() {
   return (
-    <StudentOnly>
-      <Schedule />
+    <StudentOnly allowTeacher>
+      <ScheduleHub />
     </StudentOnly>
+  );
+}
+
+/** Три режима: моё расписание, поиск по группам/аудиториям, бронирование помещений. */
+function ScheduleHub() {
+  const [section, setSection] = useState<Section>('my');
+  return (
+    <>
+      <Segmented<Section>
+        ariaLabel="Режим расписания"
+        value={section}
+        onChange={setSection}
+        className="mb-5 max-w-full"
+        options={[
+          { value: 'my', label: <><CalendarDays size={14} strokeWidth={ICON_STROKE} className="hidden sm:inline" /> <span className="sm:hidden">Моё</span><span className="hidden sm:inline">Моё расписание</span></> },
+          { value: 'search', label: <><Search size={14} strokeWidth={ICON_STROKE} className="hidden sm:inline" /> <span className="xl:hidden">Поиск</span><span className="hidden xl:inline">Группы и аудитории</span></> },
+          { value: 'booking', label: <><DoorOpen size={14} strokeWidth={ICON_STROKE} className="hidden sm:inline" /> <span className="sm:hidden">Брони</span><span className="hidden sm:inline xl:hidden">Бронирование</span><span className="hidden xl:inline">Бронирование помещений</span></> },
+        ]}
+      />
+      {section === 'my' ? (
+        <Schedule />
+      ) : section === 'search' ? (
+        <>
+          <PageHeader title="Поиск по группам и аудиториям" description="Где сейчас пара у другой группы и свободна ли аудитория" />
+          <ScheduleSearch />
+        </>
+      ) : (
+        <>
+          <PageHeader title="Бронирование помещений" description="Коворкинги, проектные аудитории и переговорные кампуса — в 2 клика" />
+          <Bookings />
+        </>
+      )}
+    </>
   );
 }
 
@@ -106,7 +143,7 @@ function Schedule() {
         <>
           {/* mobile / tablet: табы Пн–Сб */}
           <div className="lg:hidden">
-            <div role="tablist" aria-label="День недели" className="grid grid-cols-6 gap-1 rounded-xl border border-slate-200 bg-white p-1">
+            <div role="tablist" aria-label="День недели" className="grid grid-cols-6 gap-1 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#12141A] p-1">
               {WEEKDAYS_SHORT.map((w, i) => {
                 const d = i + 1;
                 const active = d === day;
@@ -121,17 +158,17 @@ function Schedule() {
                     onClick={() => setDay(d)}
                     className={cn(
                       'relative flex min-h-14 flex-col items-center justify-center rounded-lg transition-colors',
-                      active ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+                      active ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800',
                     )}
                   >
-                    <span className={cn('text-[11px]', active ? 'text-blue-100' : d === today && !isSunday ? 'font-semibold text-blue-600' : 'text-slate-500')}>
+                    <span className={cn('text-[11px]', active ? 'text-blue-100' : d === today && !isSunday ? 'font-semibold text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-zinc-400')}>
                       {w}
                     </span>
                     <span className="text-base font-semibold tabular-nums">{dayNum.format(dates[i])}</span>
                     <span
                       className={cn(
                         'absolute bottom-1.5 size-1 rounded-full',
-                        count === 0 ? 'bg-transparent' : hasMove ? 'bg-amber-500' : active ? 'bg-white' : 'bg-slate-300',
+                        count === 0 ? 'bg-transparent' : hasMove ? 'bg-amber-500' : active ? 'bg-white dark:bg-[#12141A]' : 'bg-slate-300 dark:bg-zinc-600',
                       )}
                       aria-hidden
                     />
@@ -140,7 +177,7 @@ function Schedule() {
               })}
             </div>
             <div className="mt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">
                 {WEEKDAYS_FULL[day - 1]} · <span className="tabular-nums">{dayMonth.format(dates[day - 1])}</span>
               </p>
               <DayList lessons={byDay.get(day) ?? []} isToday={day === today && !isSunday} />
@@ -154,18 +191,18 @@ function Schedule() {
               const lessons = byDay.get(d) ?? [];
               const isToday = d === today && !isSunday;
               return (
-                <Card key={w} className={cn('flex flex-col', isToday && 'border-blue-600')}>
-                  <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-                    <p className="text-sm font-medium text-slate-900">
+                <Card key={w} className={cn('flex flex-col', isToday && 'border-blue-600 dark:border-blue-500')}>
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 px-4 py-3">
+                    <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">
                       {w}
-                      <span className="ml-2 font-normal text-slate-500 tabular-nums">{dayMonth.format(dates[i])}</span>
+                      <span className="ml-2 font-normal text-slate-500 dark:text-zinc-400 tabular-nums">{dayMonth.format(dates[i])}</span>
                     </p>
                     {isToday && <Badge tone="brand">Сегодня</Badge>}
                   </div>
                   {lessons.length === 0 ? (
-                    <p className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-slate-400">Нет занятий</p>
+                    <p className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-slate-400 dark:text-zinc-500">Нет занятий</p>
                   ) : (
-                    <ul className="divide-y divide-slate-200">
+                    <ul className="divide-y divide-slate-200 dark:divide-zinc-800">
                       {lessons.map((l) => (
                         <li key={l.id}>
                           <LessonRow lesson={l} isToday={isToday} compact />
@@ -195,7 +232,7 @@ function DayList({ lessons, isToday }: { lessons: Lesson[]; isToday: boolean }) 
   }
   return (
     <Card className="overflow-hidden">
-      <ul className="divide-y divide-slate-200">
+      <ul className="divide-y divide-slate-200 dark:divide-zinc-800">
         {lessons.map((l) => (
           <li key={l.id}>
             <LessonRow lesson={l} isToday={isToday} />
@@ -217,13 +254,13 @@ function LessonRow({ lesson: l, isToday, compact }: { lesson: Lesson; isToday: b
         'relative flex gap-3 sm:gap-4',
         compact ? 'px-4 py-3' : 'px-4 py-4 sm:px-5',
         past && 'opacity-55',
-        l.isRescheduled && 'bg-amber-50/40',
+        l.isRescheduled && 'bg-amber-50/40 dark:bg-amber-950/60',
       )}
     >
-      {live && <span className="absolute inset-y-0 left-0 w-0.5 bg-blue-600" aria-hidden />}
+      {live && <span className="absolute inset-y-0 left-0 w-0.5 bg-blue-600 dark:bg-blue-500" aria-hidden />}
       <div className={cn('shrink-0 tabular-nums', compact ? 'w-11' : 'w-12 sm:w-14')}>
-        <p className={cn('font-semibold text-slate-900', compact ? 'text-sm' : 'text-base')}>{l.startTime}</p>
-        <p className="text-xs text-slate-500">{l.endTime}</p>
+        <p className={cn('font-semibold text-slate-900 dark:text-zinc-50', compact ? 'text-sm' : 'text-base')}>{l.startTime}</p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400">{l.endTime}</p>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -231,27 +268,27 @@ function LessonRow({ lesson: l, isToday, compact }: { lesson: Lesson; isToday: b
           {l.isRescheduled && <Badge tone="warning">Перенос</Badge>}
           {live && <Badge tone="brand">Идёт сейчас</Badge>}
         </div>
-        <p className={cn('mt-1.5 font-medium leading-snug text-slate-900 break-words', compact ? 'text-sm' : 'text-[15px]')}>
+        <p className={cn('mt-1.5 font-medium leading-snug text-slate-900 dark:text-zinc-50 break-words', compact ? 'text-sm' : 'text-[15px]')}>
           {l.subject}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 dark:text-zinc-400">
           <span className="inline-flex items-center gap-1.5">
-            <MapPin size={14} strokeWidth={ICON_STROKE} className="text-slate-400" />
+            <MapPin size={14} strokeWidth={ICON_STROKE} className="text-slate-400 dark:text-zinc-500" />
             {l.isRescheduled && l.oldRoom && (
-              <s className="text-slate-400 tabular-nums" aria-label={`Старая аудитория ${l.oldRoom}`}>
+              <s className="text-slate-400 dark:text-zinc-500 tabular-nums" aria-label={`Старая аудитория ${l.oldRoom}`}>
                 {l.oldRoom}
               </s>
             )}
-            <span className={cn('tabular-nums', l.isRescheduled && 'font-medium text-amber-700')}>{l.room}</span>
+            <span className={cn('tabular-nums', l.isRescheduled && 'font-medium text-amber-700 dark:text-amber-300')}>{l.room}</span>
           </span>
           {l.teacher && !compact && (
             <span className="inline-flex min-w-0 items-center gap-1.5">
-              <UserRound size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400" />
+              <UserRound size={14} strokeWidth={ICON_STROKE} className="shrink-0 text-slate-400 dark:text-zinc-500" />
               <span className="truncate">{l.teacher}</span>
             </span>
           )}
         </div>
-        {l.isRescheduled && l.note && <p className="mt-1.5 text-xs text-amber-700">{l.note}</p>}
+        {l.isRescheduled && l.note && <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">{l.note}</p>}
       </div>
     </div>
   );
@@ -259,7 +296,7 @@ function LessonRow({ lesson: l, isToday, compact }: { lesson: Lesson; isToday: b
 
 function ScheduleSkeleton() {
   return (
-    <Card className="divide-y divide-slate-200" aria-busy="true">
+    <Card className="divide-y divide-slate-200 dark:divide-zinc-800" aria-busy="true">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="flex gap-4 px-4 py-4 sm:px-5">
           <div className="w-12 space-y-2">
