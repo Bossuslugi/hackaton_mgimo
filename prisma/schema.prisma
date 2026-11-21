@@ -31,6 +31,14 @@ model User {
   department          String? // кафедра (для преподавателей)
   campusHoursWeek     Float   @default(22.5)
   campusHoursSemester Int     @default(318)
+  // V3
+  avatarUrl       String?   // data:image/(png|jpeg|webp);base64,… (≤ 500 КБ) или https-URL
+  avatarUpdatedAt DateTime?
+  wifiLogin       String    @default("stud_orbita")
+  wifiPassword    String    @default("Orbita#2026WiFi") // секрет, видимый владельцу; см. specs/03 §V3.3
+  wifiUpdatedAt   DateTime  @default(now())
+  peCurrentPoints Int       @default(14)
+  peTargetPoints  Int       @default(20)
 
   createdAt DateTime @default(now())
 
@@ -41,8 +49,11 @@ model User {
   bookings      RoomBooking[]
   sentMessages     DirectMessage[] @relation("sentMessages")
   receivedMessages DirectMessage[] @relation("receivedMessages")
+  eventRegistrations EventRegistration[]
+  sportEnrollment    SportEnrollment?
 
   @@index([groupName])
+  @@index([role, groupName])
 }
 
 model ScheduleItem {
@@ -112,7 +123,9 @@ model Assignment {
   material StudyMaterial? @relation(fields: [materialId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([userId, status])
   @@index([authorId])
+  @@index([groupName])
 }
 
 model StudyMaterial {
@@ -124,6 +137,7 @@ model StudyMaterial {
   readTimeMinutes Int
   contentMarkdown String
   updatedAt       DateTime @default(now())
+  quizJson        String?  // V3: банк проверочных вопросов [{ question, options[4], correctIndex, explanation }]
 
   assignments Assignment[]
 
@@ -149,6 +163,7 @@ model DocumentRequest {
 
   @@index([userId])
   @@index([status])
+  @@index([userId, type, status])
 }
 
 model Notification {
@@ -164,6 +179,7 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
 
 // ───────────────────────── V2
@@ -200,6 +216,67 @@ model DirectMessage {
   sender   User @relation("sentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User @relation("receivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
 
+  @@index([senderId])
+  @@index([receiverId])
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])
+}
+
+// ───────────────────────── V3
+
+model CampusEvent {
+  id              String @id @default(cuid())
+  title           String
+  category        String // Хакатон | Митап | Карьера | Наука | Клубы
+  description     String
+  date            String // YYYY-MM-DD
+  timeRange       String // "18:00 – 21:00"
+  location        String
+  organizer       String
+  capacity        Int
+  registeredCount Int    @default(0)
+  tags            String // через запятую
+
+  registrations EventRegistration[]
+
+  @@index([date])
+}
+
+model EventRegistration {
+  id         String   @id @default(cuid())
+  eventId    String
+  userId     String
+  ticketCode String   @unique // EVT-2026-XXXX
+  createdAt  DateTime @default(now())
+
+  event CampusEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+model SportSection {
+  id             String @id @default(cuid())
+  sportType      String // Плавание | Скалолазание | Футбол | Баскетбол | Настольный теннис | Тренажёрный зал | Киберспорт
+  title          String
+  coachName      String
+  campusLocation String
+  scheduleText   String // "Вт, Чт • 17:00 – 18:30"
+  capacity       Int
+  enrolledCount  Int    @default(0)
+
+  enrollments SportEnrollment[]
+}
+
+model SportEnrollment {
+  id        String   @id @default(cuid())
+  userId    String   @unique // одна активная секция в семестре
+  sectionId String
+  updatedAt DateTime @default(now())
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section SportSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
 }

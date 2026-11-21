@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { HttpError, json, parseBody, route } from '@/lib/http';
 import { requireSession, type Session } from '@/lib/session';
 import { sendMessageSchema } from '@/lib/validation';
-import { serializeContact, serializeMessage } from '@/lib/serializers';
+import { contactSelect, serializeContact, serializeMessage } from '@/lib/serializers';
 import { canMessage } from '@/lib/people';
 import { hit } from '@/lib/rate-limit';
 
@@ -15,7 +15,7 @@ async function resolvePeer(session: Session, peerId: string) {
   if (peerId === session.userId) throw new HttpError(400, 'Нельзя переписываться с самим собой');
   const peer = await prisma.user.findUnique({
     where: { id: peerId },
-    select: { id: true, fullName: true, role: true, groupName: true, department: true, position: true },
+    select: contactSelect,
   });
   if (!peer || !(await canMessage(session.user, peer))) {
     console.warn(`[security] messenger blocked: user=${session.userId} peer=${peerId}`);

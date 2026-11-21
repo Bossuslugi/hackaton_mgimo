@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { json, route } from '@/lib/http';
 import { requireSession } from '@/lib/session';
-import { serializeContact, serializeMessage } from '@/lib/serializers';
+import { contactSelect, serializeContact, serializeMessage } from '@/lib/serializers';
 import { isContact } from '@/lib/people';
 
 const ROLE_ORDER: Record<string, number> = { TEACHER: 0, STUDENT: 1, ADMIN: 2 };
@@ -17,7 +17,7 @@ export const GET = route(async () => {
   const [users, messages] = await Promise.all([
     prisma.user.findMany({
       where: { id: { not: me } },
-      select: { id: true, fullName: true, role: true, groupName: true, department: true, position: true },
+      select: contactSelect,
     }),
     prisma.directMessage.findMany({
       where: { OR: [{ senderId: me }, { receiverId: me }] },

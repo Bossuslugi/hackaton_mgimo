@@ -251,3 +251,17 @@ export const gradeSchema = z.object({
   gradeAwarded: z.coerce.number({ invalid_type_error: 'Балл — число' }).int('Балл — целое число').min(0, 'Балл не может быть отрицательным'),
   teacherFeedback: optionalText(2000, 'Комментарий'),
 });
+
+// ───────────────────────── V3
+
+export const avatarSchema = z
+  .object({
+    avatarDataUrl: z.string({ invalid_type_error: 'avatarDataUrl — строка' }).trim().max(800_000, 'Изображение больше 500 КБ').optional(),
+    avatarUrl: z.string().trim().max(800_000).optional(),
+  })
+  .transform((b) => ({ value: b.avatarDataUrl ?? b.avatarUrl ?? '' }))
+  .refine((b) => b.value.length > 0, { message: 'Передайте avatarDataUrl (data:image/…;base64) или https-ссылку', path: ['avatarDataUrl'] });
+
+export const quizSchema = z.object({
+  materialId: z.string({ required_error: 'Укажите materialId' }).trim().min(1, 'Укажите materialId').max(40),
+});
