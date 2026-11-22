@@ -26,4 +26,4 @@ ENV HOSTNAME="0.0.0.0"
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx prisma/seed.ts && npm run start"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node scripts/seed-if-empty.mjs && npm run start"]

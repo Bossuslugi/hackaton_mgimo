@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Building2, Presentation, CalendarClock, Eye, EyeOff, FileCheck2, GraduationCap, MessagesSquare, Sparkles, TriangleAlert } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
@@ -142,11 +143,20 @@ export default function LoginPage() {
 
       {/* форма */}
       <main className="mx-auto flex w-full max-w-md flex-col px-4 py-8 sm:py-12 lg:max-w-lg lg:justify-center lg:px-10">
-        <div className="flex items-center justify-between lg:justify-end">
+        <div className="flex items-center justify-between gap-2 lg:justify-end">
           <span className="lg:hidden">
             <Logo />
           </span>
-          <ThemeToggle className="-mr-2" />
+          <div className="flex items-center gap-1">
+            <Link
+              href="/pitch"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-zinc-800 dark:bg-[#12141A] dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+            >
+              <Presentation size={14} strokeWidth={ICON_STROKE} />
+              Презентация
+            </Link>
+            <ThemeToggle className="-mr-2" />
+          </div>
         </div>
 
         <div className="mt-6 lg:mt-4">

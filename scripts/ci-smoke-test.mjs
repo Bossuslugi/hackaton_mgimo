@@ -149,7 +149,64 @@ async function runTests() {
   assert.equal(teacherList.status, 200, 'Преподаватель должен получать список своих заданий');
   assert.ok(Array.isArray(teacherList.json?.assignments));
 
-  console.log('✓ Все 6 блоков smoke и AppSec тестов успешно пройдены!');
+  console.log('7. V3 сценарии: /pitch, Wi-Fi ротация, афиша, ИИ-квиз и Anti-IDOR броней...');
+  const pitchPage = await req('/pitch');
+  assert.equal(pitchPage.status, 200, '/pitch должен быть публично доступен (200)');
+
+  const wifi = await req('/api/campus/wifi/rotate', { method: 'POST', cookie: studentCookie, body: {} });
+  assert.equal(wifi.status, 200, 'Ротация пароля Wi-Fi должна возвращать 200');
+  assert.ok(typeof wifi.json?.wifiPassword === 'string' && wifi.json.wifiPassword.length >= 6);
+
+  const events = await req('/api/campus/events', { cookie: studentCookie });
+  assert.equal(events.status, 200);
+  const firstEventId = events.json?.events?.[0]?.id;
+  if (firstEventId) {
+    const toggle = await req(`/api/campus/events/${firstEventId}/toggle`, { method: 'POST', cookie: studentCookie, body: {} });
+    assert.equal(toggle.status, 200, 'Регистрация/отмена на мероприятие должна возвращать 200');
+  }
+
+  const firstMatId = study.json?.materials?.[0]?.id;
+  if (firstMatId) {
+    const quiz = await req('/api/ai/quiz', { method: 'POST', cookie: studentCookie, body: { materialId: firstMatId } });
+    assert.equal(quiz.status, 200, 'ИИ-квиз должен возвращать 200');
+    assert.ok(Array.isArray(quiz.json?.questions) && quiz.json.questions.length > 0);
+  }
+
+  // Проверка бронирований: создаём бронь на завтра, проверяем 409 при дубле и 403 при попытке отмены Марией
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const bookingsRes = await req(`/api/bookings?date=${tomorrow}`, { cookie: studentCookie });
+  assert.equal(bookingsRes.status, 200);
+  const freeRoom = bookingsRes.json?.roomsCatalog?.find((r) => r.slots?.some((s) => s.available));
+  const freeSlot = freeRoom?.slots?.find((s) => s.available)?.timeSlot;
+  if (freeRoom && freeSlot) {
+    const created = await req('/api/bookings', {
+      method: 'POST',
+      cookie: studentCookie,
+      body: { roomName: freeRoom.roomName, date: tomorrow, timeSlot: freeSlot, purpose: 'CI test', participantsCount: 2 },
+    });
+    assert.equal(created.status, 201, 'Бронь свободного слота должна возвращать 201');
+    const bookingId = created.json?.booking?.id;
+
+    const conflict = await req('/api/bookings', {
+      method: 'POST',
+      cookie: studentCookie,
+      body: { roomName: freeRoom.roomName, date: tomorrow, timeSlot: freeSlot, purpose: 'CI conflict', participantsCount: 2 },
+    });
+    assert.equal(conflict.status, 409, 'Повторная бронь того же слота должна возвращать 409 Conflict');
+
+    const mariaLogin = await req('/api/auth/login', {
+      method: 'POST',
+      body: { email: 'maria.kuznetsova@edu.orbita.ru', password: 'Student2026!' },
+    });
+    const mariaCookie = extractCookie(mariaLogin.headers);
+    const idorDelete = await req(`/api/bookings/${bookingId}`, { method: 'DELETE', cookie: mariaCookie });
+    assert.equal(idorDelete.status, 403, 'Отмена чужой брони должна блокироваться с 403 Forbidden');
+
+    const ownDelete = await req(`/api/bookings/${bookingId}`, { method: 'DELETE', cookie: studentCookie });
+    assert.equal(ownDelete.status, 200, 'Отмена своей брони должна возвращать 200');
+  }
+
+  console.log('✓ Все 7 блоков smoke и AppSec тестов (V1–V3) успешно пройдены!');
 }
 
 const server = await startServer();
