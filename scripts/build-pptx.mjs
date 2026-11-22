@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'Orbita_Presentation.pptx');
+const OUT = path.join(ROOT, 'deliverables', 'presentation', 'Orbita_Presentation.pptx');
 const { qrMatrix } = await tsImport('../src/lib/qr.ts', import.meta.url);
 
 // ───────────────────────── Токены Obsidian Dark

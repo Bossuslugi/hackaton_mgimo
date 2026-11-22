@@ -258,6 +258,7 @@ src/
   components/              # UI-кит, оболочка, Copilot, деканат, кабинет преподавателя, кампус
   lib/                     # jwt, session, password, validation, domain (пороги БРС), ai/*, ics, qr
 scripts/dark-codemod.mjs   # проверка и дописывание dark:-пар
+deliverables/              # финальные материалы для жюри: presentation/, reports/, video/
 ai-docs/                   # отчёты аудита, лог промптов, отчёт о процессе, питч-дек, сценарий видео
 AGENTS.md                  # правила SDD-оркестрации и зоны владения потоков
 Dockerfile, docker-compose.yml
@@ -277,7 +278,9 @@ Dockerfile, docker-compose.yml
 | [ai-docs/FINAL_PROCESS_REPORT.md](ai-docs/FINAL_PROCESS_REPORT.md) | Отчёт о процессе разработки с ИИ |
 | [ai-docs/PITCH_DECK.md](ai-docs/PITCH_DECK.md) | Презентация на 10 слайдов |
 | [ai-docs/VIDEO_SCRIPT.md](ai-docs/VIDEO_SCRIPT.md) | Сценарий видео-демонстрации на 3,5 минуты |
-| [Orbita_Demo.mp4](Orbita_Demo.mp4), [Orbita_Demo.webm](Orbita_Demo.webm) | Автоматически записанное видео-демо (~3 минуты), `npm run demo:record` |
+| [deliverables/presentation/Orbita_Presentation.pptx](deliverables/presentation/Orbita_Presentation.pptx) | Финальная презентация проекта для жюри (`.pptx`) |
+| [deliverables/reports/Orbita_Process_Report.pdf](deliverables/reports/Orbita_Process_Report.pdf) | Итоговый PDF-отчёт о процессе создания и применении ИИ (с реальными скриншотами) |
+| [deliverables/video/mgimo.mp4](deliverables/video/mgimo.mp4) | Финальная видео-демонстрация проекта |
 
 ## Лицензия
 

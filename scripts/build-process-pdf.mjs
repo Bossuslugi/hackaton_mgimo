@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 
 const ROOT = process.cwd();
 const SCREENSHOTS_DIR = path.join(ROOT, 'ai-docs', 'screenshots');
-const PDF_PATH = path.join(ROOT, 'Orbita_Process_Report.pdf');
+const PDF_PATH = path.join(ROOT, 'deliverables', 'reports', 'Orbita_Process_Report.pdf');
 const BASE_URL = 'http://localhost:3000';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
