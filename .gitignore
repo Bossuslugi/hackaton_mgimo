@@ -12,3 +12,6 @@ npm-debug.log*
 # SQLite база демо-стенда
 prisma/*.db
 prisma/*.db-journal
+
+# сырые кадры автозаписи демо (scripts/record-demo.mjs)
+demo-raw/

@@ -216,8 +216,16 @@ Production-сборка: `npm run build && npm run start`.
 | `npm run typecheck` | Проверка типов TypeScript |
 | `node scripts/dark-codemod.mjs --check` | Проверить, что у каждого цветового класса есть пара для тёмной темы |
 | `NEXT_PUBLIC_API_MOCK=1 npm run dev` | Только фронтенд, на встроенных моках, без базы |
+| `npm run demo:record` | Автозапись видео-демо в `Orbita_Demo.webm` и `Orbita_Demo.mp4` (Playwright, см. ниже) |
 
 **ИИ-ассистент (необязательно).** Для ответов настоящей LLM укажите в `.env` `AI_API_KEY`, `AI_BASE_URL` и `AI_MODEL` любого OpenAI-совместимого провайдера. Без ключа Copilot и квизы работают в детерминированном режиме на данных из БД.
+
+**Видео-демо без ручной записи экрана.** [`scripts/record-demo.mjs`](scripts/record-demo.mjs) пересоздаёт демо-данные, при необходимости сам поднимает сервер (`next start` при наличии сборки, иначе `next dev`), проходит шесть сцен (вход и «Фокус дня» → расписание и бронь → симулятор БРС и решатель с Copilot → кампус и мессенджер → контур «студент ↔ деканат ↔ справка с QR» → IDOR, темы и вёрстка 360 px) с экранными титрами и сохраняет готовый ролик в корень репозитория. Для MP4 используется системный `ffmpeg`, если его нет, то пакет `ffmpeg-static`.
+
+```bash
+npx playwright install chromium   # один раз
+npm run demo:record               # флаги: --no-seed, --headed
+```
 
 ---
 
@@ -269,6 +277,7 @@ Dockerfile, docker-compose.yml
 | [ai-docs/FINAL_PROCESS_REPORT.md](ai-docs/FINAL_PROCESS_REPORT.md) | Отчёт о процессе разработки с ИИ |
 | [ai-docs/PITCH_DECK.md](ai-docs/PITCH_DECK.md) | Презентация на 10 слайдов |
 | [ai-docs/VIDEO_SCRIPT.md](ai-docs/VIDEO_SCRIPT.md) | Сценарий видео-демонстрации на 3,5 минуты |
+| [Orbita_Demo.mp4](Orbita_Demo.mp4), [Orbita_Demo.webm](Orbita_Demo.webm) | Автоматически записанное видео-демо (~3 минуты), `npm run demo:record` |
 
 ## Лицензия
 
