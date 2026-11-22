@@ -59,13 +59,14 @@ export function CopilotPanel() {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 hidden bg-slate-900/20 dark:bg-black/40 lg:block" onClick={c.close} aria-hidden />
+      {/* Слой выше рабочей зоны и шторок (z-50), чтобы Copilot открывался поверх них, но ниже тостов (z-60) */}
+      <div className="fixed inset-0 z-[55] hidden bg-slate-900/20 dark:bg-black/40 lg:block" onClick={c.close} aria-hidden />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Орбита Copilot"
         className={cn(
-          'fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#12141A]',
+          'fixed inset-0 z-[56] flex flex-col bg-white dark:bg-[#12141A]',
           'lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[440px] lg:border-l lg:border-slate-200 dark:lg:border-zinc-800',
           'animate-[drawer-in_200ms_ease-out]',
         )}
