@@ -13,7 +13,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:setup": "prisma db push --force-reset --skip-generate && prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "demo:record": "node scripts/record-demo.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -30,6 +31,7 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "ffmpeg-static": "^5.3.0",
     "jszip": "^3.10.2",
     "playwright": "^1.65.1",
     "pptxgenjs": "^4.0.1",
