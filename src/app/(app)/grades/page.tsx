@@ -18,8 +18,7 @@ import {
   average,
   gradeOf,
   headroom,
-  PASS_THRESHOLD,
-  ADMISSION_THRESHOLD,
+  isDebt,
   projectedTotal,
   STIPEND_THRESHOLD,
   type SimDelta,
@@ -51,7 +50,7 @@ function Grades() {
   const delta = (s: SubjectGrade) => deltas[s.id] ?? zeroDelta();
   const totals = subjects.map((s) => (mode === 'sim' ? projectedTotal(s, delta(s)) : s.total));
   const avg = average(totals);
-  const debts = subjects.filter((s, i) => totals[i] < ADMISSION_THRESHOLD || (mode === 'current' && s.hasDebt));
+  const debts = subjects.filter((s, i) => isDebt(totals[i], mode === 'current' && s.hasDebt));
   const below = subjects
     .map((s, i) => ({ s, t: totals[i] }))
     .filter((x) => x.t < STIPEND_THRESHOLD);
@@ -241,7 +240,7 @@ const PARTS: { key: keyof SimDelta; label: string; val: (s: SubjectGrade) => num
 
 function SubjectCard({ s }: { s: SubjectGrade }) {
   const g = gradeOf(s.total);
-  const debt = s.total < ADMISSION_THRESHOLD || s.hasDebt;
+  const debt = isDebt(s.total, s.hasDebt);
   return (
     <Card className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
@@ -312,7 +311,7 @@ function SimCard({ s, d, onChange }: { s: SubjectGrade; d: SimDelta; onChange: (
   const maxPossible = projectedTotal(s, h);
 
   return (
-    <Card className={cn('p-4 sm:p-5', ok ? 'border-emerald-200 dark:border-emerald-800/60' : total < PASS_THRESHOLD ? 'border-red-200 dark:border-red-800/60' : '')}>
+    <Card className={cn('p-4 sm:p-5', ok ? 'border-emerald-200 dark:border-emerald-800/60' : isDebt(total) ? 'border-red-200 dark:border-red-800/60' : '')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-[15px] font-semibold leading-snug text-slate-900 dark:text-zinc-50 break-words">{s.name}</h3>
@@ -328,7 +327,7 @@ function SimCard({ s, d, onChange }: { s: SubjectGrade; d: SimDelta; onChange: (
         </div>
       </div>
 
-      <Progress value={total} marker={STIPEND_THRESHOLD} tone={ok ? 'success' : total < PASS_THRESHOLD ? 'danger' : 'warning'} className="mt-3" />
+      <Progress value={total} marker={STIPEND_THRESHOLD} tone={ok ? 'success' : isDebt(total) ? 'danger' : 'warning'} className="mt-3" />
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
         <Badge tone={before.tone}>{before.label}</Badge>
         {after.label !== before.label && (
