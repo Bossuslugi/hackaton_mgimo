@@ -8,8 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  // Файл БД лежит рядом со схемой: prisma/dev.db. Не секрет — это локальный демо-стенд.
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model User {
