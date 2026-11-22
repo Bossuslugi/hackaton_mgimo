@@ -209,3 +209,65 @@
   }
   [data-no-print] { display: none !important; }
 }
+
+/*
+ * Веб-презентация /pitch (src/components/pitch). Холст 1280×720 — 16:9.
+ * Экран: смена слайда — opacity + transform (60 FPS), подсказка повернуть телефон в портретной ориентации.
+ * Печать: каждая секция — отдельная страница 1280×720 без полей и масштабирования (именованная @page,
+ * чтобы не конфликтовать с A4 печатной справки). Тёмный фон сохраняется через print-color-adjust.
+ */
+@keyframes pitch-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.pitch-slide-active { animation: pitch-in 0.32s ease-out; }
+@media screen and (orientation: portrait) and (max-width: 767px) {
+  .pitch-rotate-hint { display: flex; }
+}
+
+@page pitch {
+  size: 1280px 720px;
+  margin: 0;
+}
+@media print {
+  .pitch-root {
+    position: static !important;
+    display: block !important;
+    background: #09090b !important;
+  }
+  .pitch-root .pitch-stage {
+    overflow: visible !important;
+    cursor: auto;
+  }
+  .pitch-root .pitch-canvas[data-print-root] {
+    position: static !important;
+    transform: none !important;
+    width: 1280px !important;
+    height: auto !important;
+    opacity: 1 !important;
+  }
+  .pitch-root .pitch-slide {
+    page: pitch;
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 1280px;
+    height: 720px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    animation: none !important;
+    break-after: page;
+    break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .pitch-root .pitch-slide:last-child { break-after: auto; }
+}
+/* Ползунок симулятора на /pitch — всегда тёмный (и в светлой теме приложения, и в PDF) */
+.pitch-root .range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #3b82f6 var(--fill, 0%), #27272a var(--fill, 0%));
+}
+.pitch-root .range::-moz-range-track { background: #27272a; }
+.pitch-root .range::-moz-range-progress { background: #3b82f6; }
+.pitch-root .range::-webkit-slider-thumb { background: #18181b; border-color: #3b82f6; }
+.pitch-root .range::-moz-range-thumb { background: #18181b; border-color: #3b82f6; }

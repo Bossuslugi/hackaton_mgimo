@@ -4,11 +4,15 @@
  *  2) изменяющие запросы с чужим Origin отклоняются → 403 (CSRF, поверх SameSite=Lax);
  *  3) приватные страницы требуют авторизации → иначе редирект на /login;
  *  4) авторизованный пользователь на /login редиректится на главную /.
+ *  5) публичные страницы (PUBLIC_PAGES, например веб-презентация /pitch) открываются без входа.
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/jwt';
 
 const PUBLIC_API = new Set(['/api/auth/login', '/api/auth/logout']);
+/** Страницы без авторизации. /pitch — презентация для жюри: без персональных данных, API не вызывает от чужого имени. */
+const PUBLIC_PAGES = ['/pitch'];
+const isPublicPage = (pathname: string) => PUBLIC_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 const deny = (status: number, error: string) =>
@@ -31,6 +35,9 @@ export async function middleware(req: NextRequest) {
       if (originHost !== host) return deny(403, 'Запрос с недоверенного источника отклонён (CSRF protection)');
     }
   }
+
+  // Публичные страницы — без проверки сессии
+  if (isPublicPage(pathname)) return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const session = await verifySession(token);
@@ -69,5 +76,6 @@ export const config = {
     '/messages/:path*',
     '/campus/:path*',
     '/login',
+    '/pitch/:path*',
   ],
 };

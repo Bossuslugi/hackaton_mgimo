@@ -14,7 +14,8 @@ import { join, relative, sep } from 'node:path';
 
 const ROOT = process.cwd();
 const TARGETS = ['src/app', 'src/components'];
-const SKIP = [join('src', 'app', 'api')];
+// src/components/pitch — презентация /pitch: всегда Obsidian Dark с явными цветами (и в PDF), бланк справки на ней намеренно светлый
+const SKIP = [join('src', 'app', 'api'), join('src', 'components', 'pitch')];
 const CHECK = process.argv.includes('--check');
 
 /** prop-группа → (цвет → dark-цвет). null — не трогать. */
